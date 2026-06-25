@@ -13,6 +13,7 @@ assets/css/         Shared styles
 ```
 
 AKA: 
+```
 pbl.haq-lab.github.io/
 ├── index.html              ← program selector (big clear buttons, nothing else)
 ├── aqiq/
@@ -25,7 +26,7 @@ pbl.haq-lab.github.io/
 │   ├── index.html          ← Fire-IQ hub
 │   └── tools/live-viewer/  ← same tool, YPOD config
 └── assets/
-
+```
 ## Programs
 
 | Program  | Instrument | Tools                  |
