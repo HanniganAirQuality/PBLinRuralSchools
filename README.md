@@ -18,12 +18,18 @@ pbl.haq-lab.github.io/
 ├── index.html              ← program selector (big clear buttons, nothing else)
 ├── aqiq/
 │   ├── index.html          ← AQIQ hub (tools + curriculum links)
+│   ├── tools/data-plotter/
 │   └── tools/live-viewer/
 ├── sqiq/
-│   ├── index.html          ← SQIQ hub
+│   ├── index.html          ← SQIQ hub (Not available yet)
 │   └── tools/data-plotter/
 ├── fire-iq/
 │   ├── index.html          ← Fire-IQ hub
+│   ├── tools/data-plotter/
+│   └── tools/live-viewer/  ← same tool, YPOD config
+├── water-iq/
+│   ├── index.html          ← Water-IQ hub (Not available yet)
+│   ├── tools/data-plotter/
 │   └── tools/live-viewer/  ← same tool, YPOD config
 └── assets/
 ```
@@ -31,9 +37,10 @@ pbl.haq-lab.github.io/
 
 | Program  | Instrument | Tools                  |
 |----------|------------|------------------------|
-| AQIQ     | YPOD       | Live Viewer            |
+| AQIQ     | YPOD       | Live Viewer / Data Plotter |
 | SQIQ     | SPOD       | Data Plotter           |
-| Fire-IQ  | YPOD (mod) | Live Viewer            |
+| Fire-IQ  | YPOD (mod) | Live Viewer / Data plotter |
+| Water-IQ  | TBD | Live Viewer / Data plotter |
 
 ## Hosting
 
