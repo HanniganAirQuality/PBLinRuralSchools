@@ -7,30 +7,49 @@
   <link rel="stylesheet" href="assets/css/main.css">
 </head>
 <body class="landing">
-
-  <header> 
-    HAQ Lab wordmark / CU affiliation
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="HAQ Lab PBL home">HAQ Lab PBL</a>
+    <span class="affiliation">University of Colorado</span>
   </header>
 
-  <main>
-    <h1><!-- "Which program are you in?" or similar --></h1>
+  <main class="selector-shell">
+    <section class="selector-intro" aria-labelledby="page-title">
+      <p class="eyebrow">Program selector</p>
+      <h1 id="page-title">Which program are you in?</h1>
+    </section>
 
-    <nav class="program-grid">
-      <a href="aqiq/" class="program-card aqiq">
-        <AQIQ>
+    <nav class="program-grid" aria-label="Programs">
+      <a href="aqiq/" class="program-card theme-aqiq">
+        <span class="program-kicker">YPOD</span>
+        <span class="program-name">AQIQ</span>
+        <span class="program-status">Open hub</span>
       </a>
-      <a href="sqiq/" class="program-card sqiq">
-        <SQIQ>
+
+      <a href="fire-iq/" class="program-card theme-fire-iq">
+        <span class="program-kicker">YPOD mod</span>
+        <span class="program-name">Fire-IQ</span>
+        <span class="program-status">Open hub</span>
       </a>
-      <a href="fire-iq/" class="program-card fireiq">
-        <Fire-IQ>
+
+      <a href="sqiq/" class="program-card theme-sqiq is-disabled" aria-label="SQIQ, not available yet">
+        <span class="program-kicker">SPOD</span>
+        <span class="program-name">SQIQ</span>
+        <span class="program-status">Not available yet</span>
+      </a>
+
+      <a href="water-iq/" class="program-card theme-water-iq is-disabled" aria-label="Water-IQ, not available yet">
+        <span class="program-kicker">TBD</span>
+        <span class="program-name">Water-IQ</span>
+        <span class="program-status">Not available yet</span>
       </a>
     </nav>
   </main>
 
-  <footer>
-    <!-- HAQ Lab · University of Colorado -->
+  <footer class="site-footer">
+    <span>HAQ Lab, University of Colorado</span>
+    <span data-current-year></span>
   </footer>
 
+  <script type="module" src="assets/js/core/site.js"></script>
 </body>
 </html>

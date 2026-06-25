@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AQIQ Live Viewer | HAQ Lab PBL</title>
+  <link rel="stylesheet" href="../../../assets/css/main.css">
+</head>
+<body class="tool-page live-viewer-page theme-aqiq">
+  <header class="site-header">
+    <a class="brand" href="../../../">HAQ Lab PBL</a>
+    <nav class="site-nav" aria-label="Tool navigation">
+      <a href="../../">AQIQ hub</a>
+      <a href="../data-plotter/">Data Plotter</a>
+    </nav>
+  </header>
+
+  <main class="live-shell" data-live-viewer>
+    <section class="live-header" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">AQIQ live viewer</p>
+        <h1 id="page-title">YPOD Live Visualization</h1>
+      </div>
+
+      <div class="schema-card" aria-live="polite">
+        <span class="schema-label">YAML</span>
+        <a data-schema-link href="https://github.com/HanniganAirQuality/All-POD-YAMLs/blob/main/YPOD_HeaderLog.yaml">YPOD_HeaderLog.yaml</a>
+        <span data-schema-status>Loading Serial_Calibrate schema...</span>
+      </div>
+    </section>
+
+    <section class="live-controls" aria-label="Live viewer controls">
+      <button class="primary-action" type="button" data-connect>Connect</button>
+      <button type="button" data-disconnect disabled>Disconnect</button>
+      <button type="button" data-reset>Reset</button>
+
+      <div class="connection-status" data-connection-status aria-live="polite">Idle</div>
+    </section>
+
+    <details class="advanced-settings">
+      <summary>Advanced settings</summary>
+      <div class="advanced-grid">
+        <label class="control-group" for="yaml-version">
+          <span>YAML version</span>
+          <select id="yaml-version" data-yaml-version></select>
+        </label>
+
+        <label class="control-group" for="yaml-section">
+          <span>YAML type</span>
+          <select id="yaml-section" data-yaml-section></select>
+        </label>
+
+        <fieldset class="plot-toggles">
+          <legend>Plots shown</legend>
+          <label><input type="checkbox" data-plot-toggle value="temperature" checked> Temperature</label>
+          <label><input type="checkbox" data-plot-toggle value="humidity" checked> Relative Humidity</label>
+          <label><input type="checkbox" data-plot-toggle value="voc" checked> VOC</label>
+          <label><input type="checkbox" data-plot-toggle value="co2" checked> CO2</label>
+          <label><input type="checkbox" data-plot-toggle value="co" checked> CO</label>
+          <label><input type="checkbox" data-plot-toggle value="pm25" checked> PM2.5</label>
+        </fieldset>
+      </div>
+
+    </details>
+
+    <section class="metric-strip" aria-label="Latest readings">
+      <article class="metric-card">
+        <span>Temperature</span>
+        <strong data-metric="temperature">--</strong>
+      </article>
+      <article class="metric-card">
+        <span>Relative Humidity</span>
+        <strong data-metric="humidity">--</strong>
+      </article>
+      <article class="metric-card">
+        <span>CO2</span>
+        <strong data-metric="co2">--</strong>
+      </article>
+      <article class="metric-card">
+        <span>PM2.5</span>
+        <strong data-metric="pm25">--</strong>
+      </article>
+      <article class="metric-card">
+        <span>VOC</span>
+        <strong data-metric="voc">--</strong>
+      </article>
+      <article class="metric-card">
+        <span>CO</span>
+        <strong data-metric="co">--</strong>
+      </article>
+    </section>
+
+    <section class="chart-grid" aria-label="Live AQIQ charts">
+      <article class="chart-card" data-chart-card="temperature">
+        <div class="chart-heading">
+          <div>
+            <h2>Temperature <span>[deg C]</span></h2>
+          </div>
+          <span data-chart-stats="temperature">--</span>
+        </div>
+        <canvas id="chart-temperature" data-chart="temperature"></canvas>
+      </article>
+
+      <article class="chart-card" data-chart-card="humidity">
+        <div class="chart-heading">
+          <div>
+            <h2>Relative Humidity <span>[% RH]</span></h2>
+          </div>
+          <span data-chart-stats="humidity">--</span>
+        </div>
+        <canvas id="chart-humidity" data-chart="humidity"></canvas>
+      </article>
+
+      <article class="chart-card" data-chart-card="voc">
+        <div class="chart-heading">
+          <div>
+            <h2>VOC Signal <span>[ADU]</span></h2>
+          </div>
+          <span data-chart-stats="voc">--</span>
+        </div>
+        <div class="chart-legend">
+          <span><i style="--swatch:#3ac831"></i>Light VOC</span>
+          <span><i style="--swatch:#02580e"></i>Heavy VOC</span>
+          <span><i style="--swatch:#ffd60a"></i>TVOC</span>
+        </div>
+        <canvas id="chart-voc" data-chart="voc"></canvas>
+      </article>
+
+      <article class="chart-card" data-chart-card="co2">
+        <div class="chart-heading">
+          <div>
+            <h2>Carbon Dioxide <span>[ppm]</span></h2>
+          </div>
+          <span data-chart-stats="co2">--</span>
+        </div>
+        <canvas id="chart-co2" data-chart="co2"></canvas>
+      </article>
+
+      <article class="chart-card" data-chart-card="co">
+        <div class="chart-heading">
+          <div>
+            <h2>Carbon Monoxide <span>[ADU]</span></h2>
+          </div>
+          <span data-chart-stats="co">--</span>
+        </div>
+        <div class="chart-legend">
+          <span><i style="--swatch:#7da9ff"></i>CO</span>
+          <span><i style="--swatch:#4f46e5"></i>CO aux</span>
+        </div>
+        <canvas id="chart-co" data-chart="co"></canvas>
+      </article>
+
+      <article class="chart-card" data-chart-card="pm25">
+        <div class="chart-heading">
+          <div>
+            <h2>Particulate Matter 2.5 <span>[ug/m^3]</span></h2>
+          </div>
+          <span data-chart-stats="pm25">--</span>
+        </div>
+        <canvas id="chart-pm25" data-chart="pm25"></canvas>
+      </article>
+    </section>
+
+    <section class="serial-readout" aria-label="Serial readout">
+      <div>
+        <span>Rows</span>
+        <strong data-row-count>0</strong>
+      </div>
+      <div>
+        <span>Last timestamp</span>
+        <strong data-last-time>--</strong>
+      </div>
+      <div>
+        <span>Latest row</span>
+        <code data-latest-line>--</code>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <span>HAQ Lab, University of Colorado</span>
+    <span data-current-year></span>
+  </footer>
+
+  <script type="module" src="../../../assets/js/core/site.js"></script>
+  <script type="module" src="../../../assets/js/viewers/aqiq-live-viewer.js"></script>
+</body>
+</html>

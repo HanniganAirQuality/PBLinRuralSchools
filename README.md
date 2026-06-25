@@ -4,48 +4,54 @@ Static site for the HAQ Lab Project-Based Learning programs, hosted on GitHub Pa
 
 ## Structure
 
-```
-index.html          Landing page — program selector
-aqiq/               AQIQ program hub
-sqiq/               SQIQ program hub
-fire-iq/            Fire-IQ program hub
-assets/css/         Shared styles
+```text
+pbl.haq-lab.github.io/
+|-- index.html                  Program selector
+|-- aqiq/
+|   |-- index.html              AQIQ hub
+|   `-- tools/
+|       |-- data-plotter/
+|       |   `-- index.html      Data Plotter placeholder
+|       `-- live-viewer/
+|           `-- index.html      Live Viewer placeholder
+|-- fire-iq/
+|   |-- index.html              Fire-IQ hub
+|   `-- tools/
+|       |-- data-plotter/
+|       |   `-- index.html      Data Plotter placeholder
+|       `-- live-viewer/
+|           `-- index.html      Live Viewer placeholder
+|-- sqiq/
+|   `-- index.html              Disabled placeholder
+|-- water-iq/
+|   `-- index.html              Disabled placeholder
+|-- assets/
+|   |-- css/
+|   |-- generated/
+|   |-- js/
+|   |   |-- core/
+|   |   `-- viewers/
+|   `-- vendor/
+|-- .github/
+|   `-- workflows/
+`-- .nojekyll
 ```
 
-AKA: 
-```
-pbl.haq-lab.github.io/
-├── index.html              ← program selector (big clear buttons, nothing else)
-├── aqiq/
-│   ├── index.html          ← AQIQ hub (tools + curriculum links)
-│   ├── tools/data-plotter/
-│   └── tools/live-viewer/
-├── sqiq/
-│   ├── index.html          ← SQIQ hub (Not available yet)
-│   └── tools/data-plotter/
-├── fire-iq/
-│   ├── index.html          ← Fire-IQ hub
-│   ├── tools/data-plotter/
-│   └── tools/live-viewer/  ← same tool, YPOD config
-├── water-iq/
-│   ├── index.html          ← Water-IQ hub (Not available yet)
-│   ├── tools/data-plotter/
-│   └── tools/live-viewer/  ← same tool, YPOD config
-└── assets/
-```
 ## Programs
 
-| Program  | Instrument | Tools                  |
-|----------|------------|------------------------|
-| AQIQ     | YPOD       | Live Viewer / Data Plotter |
-| SQIQ     | SPOD       | Data Plotter           |
-| Fire-IQ  | YPOD (mod) | Live Viewer / Data plotter |
-| Water-IQ  | TBD | Live Viewer / Data plotter |
+| Program | Instrument | Status | Tools |
+| --- | --- | --- | --- |
+| AQIQ | YPOD | Active hub | Live Viewer, Data Plotter |
+| Fire-IQ | YPOD mod | Active placeholder hub | Live Viewer, Data Plotter |
+| SQIQ | SPOD | Disabled placeholder | Future tools |
+| Water-IQ | TBD | Disabled placeholder | Future tools |
+
+## Live Viewer
+
+The AQIQ live viewer is a static Web Serial application. By default, it uses 9600 baud, loads the latest `YPOD_*` entry from `YPOD_HeaderLog.yaml` in the `HanniganAirQuality/All-POD-YAMLs` repository, and parses incoming CSV rows using that version's `Serial_Calibrate` column order. Advanced settings allow selecting a specific YAML version, YAML data section, and visible plots.
 
 ## Hosting
 
-Served via GitHub Pages. Requires HTTPS for Web Serial API (provided automatically on `*.github.io`).
+Served via GitHub Pages. Requires HTTPS for Web Serial API, which is provided automatically on `*.github.io`.
 
-Web Serial API is supported in Chrome, Edge, and Firefox 151+.
-
-## HAQ Lab · University of Colorado
+## HAQ Lab, University of Colorado
