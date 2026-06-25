@@ -12,6 +12,20 @@ fire-iq/            Fire-IQ program hub
 assets/css/         Shared styles
 ```
 
+AKA: 
+pbl.haq-lab.github.io/
+├── index.html              ← program selector (big clear buttons, nothing else)
+├── aqiq/
+│   ├── index.html          ← AQIQ hub (tools + curriculum links)
+│   └── tools/live-viewer/
+├── sqiq/
+│   ├── index.html          ← SQIQ hub
+│   └── tools/data-plotter/
+├── fire-iq/
+│   ├── index.html          ← Fire-IQ hub
+│   └── tools/live-viewer/  ← same tool, YPOD config
+└── assets/
+
 ## Programs
 
 | Program  | Instrument | Tools                  |
