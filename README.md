@@ -1,6 +1,7 @@
 # HAQ Lab PBL Site
 
 Static site for the HAQ Lab Project-Based Learning programs, hosted on GitHub Pages.
+hanniganairquality.github.io/PBLinRuralSchools/
 
 ## Structure
 
