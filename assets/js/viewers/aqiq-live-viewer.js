@@ -17,7 +17,6 @@ const FIELD_ALIASES = {
   pm25: ["PM25_ENV", "PM2_5", "PM25", "PM2.5"],
   vocLight: ["Fig2600_LightVOC", "LightVOC", "lightVOC"],
   vocHeavy: ["Fig2602_HeavyVOC", "HeavyVOC", "heavyVOC"],
-  tvoc: ["Calibrated_TVOC", "TVOC"],
   co: ["CO_ch1", "CO_ISB", "CO", "CarbonMonoxide"],
   coAux: ["CO_ch2"],
 };
@@ -41,7 +40,6 @@ const CHARTS = {
     series: [
       { key: "vocLight", color: "#3ac831" },
       { key: "vocHeavy", color: "#02580e" },
-      { key: "tvoc", color: "#ffd60a" },
     ],
   },
   co2: {
@@ -53,8 +51,8 @@ const CHARTS = {
     canvas: "chart-co",
     stats: "co",
     series: [
-      { key: "co", color: "#7da9ff" },
-      { key: "coAux", color: "#4f46e5" },
+      { key: "co", color: "#7da9ff", preferredField: "CO_ch1" },
+      { key: "coAux", color: "#4f46e5", preferredField: "CO_ch2" },
     ],
   },
   pm25: {
@@ -71,6 +69,7 @@ const state = {
   schema: null,
   records: [],
   serial: null,
+  skipNextSerialLine: false,
   renderQueued: false,
 };
 
@@ -97,6 +96,7 @@ function bindControls() {
   query("[data-connect]").addEventListener("click", connectSerial);
   query("[data-disconnect]").addEventListener("click", disconnectSerial);
   query("[data-reset]").addEventListener("click", resetData);
+  query("[data-export-png]").addEventListener("click", exportGraphPng);
   query("[data-yaml-version]").addEventListener("change", handleVersionChange);
   query("[data-yaml-section]").addEventListener("change", applySelectedSchema);
   app.querySelectorAll("[data-plot-toggle]").forEach((toggle) => {
@@ -165,10 +165,70 @@ function applySelectedSchema() {
 
     const suffix = schema.isFallback ? "fallback" : `${schema.columns.length} columns`;
     schemaStatus.textContent = `${schema.version} ${schema.section}, ${suffix}`;
+    updateLegends();
     resetData();
   } catch (error) {
     schemaStatus.textContent = error.message || "Unable to load schema";
   }
+}
+
+function updateLegends() {
+  Object.entries(CHARTS).forEach(([key, chart]) => {
+    const target = app.querySelector(`[data-chart-legend="${key}"]`);
+
+    if (!target) {
+      return;
+    }
+
+    target.replaceChildren(
+      ...chart.series
+        .map((series) => ({
+          series,
+          column: resolveColumnForSeries(series.key),
+        }))
+        .filter((item) => item.column)
+        .map((item) => makeLegendItem(item.series.color, item.column.name)),
+    );
+  });
+}
+
+function resolveColumnForSeries(seriesKey) {
+  const aliases = FIELD_ALIASES[seriesKey] || [];
+  const columns = state.schema?.columns || [];
+  const preferredField = Object.values(CHARTS)
+    .flatMap((chart) => chart.series)
+    .find((series) => series.key === seriesKey)?.preferredField;
+
+  if (preferredField) {
+    const preferredColumn = columns.find((column) => column.name === preferredField);
+
+    if (preferredColumn) {
+      return preferredColumn;
+    }
+  }
+
+  return aliases
+    .map((alias) => columns.find((column) => column.name === alias))
+    .find(Boolean);
+}
+
+function makeLegendItem(color, fieldName) {
+  const item = document.createElement("span");
+  const swatch = document.createElement("i");
+  swatch.style.setProperty("--swatch", color);
+  item.append(swatch, document.createTextNode(formatFieldLabel(fieldName)));
+  return item;
+}
+
+function formatFieldLabel(fieldName) {
+  return fieldName
+    .replace(/^Fig2600_/, "")
+    .replace(/^Fig2602_/, "")
+    .replace(/_/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\bPM25\b/g, "PM2.5")
+    .replace(/\bCO2\b/g, "CO2")
+    .replace(/\bVOC\b/g, "VOC");
 }
 
 async function connectSerial() {
@@ -185,6 +245,7 @@ async function connectSerial() {
     });
 
     setButtons({ connecting: true });
+    state.skipNextSerialLine = true;
     setStatus("Opening serial port...");
     await state.serial.connect();
     setButtons({ connected: true });
@@ -197,6 +258,7 @@ async function connectSerial() {
 async function disconnectSerial() {
   await state.serial?.disconnect();
   state.serial = null;
+  state.skipNextSerialLine = false;
   setButtons({ connected: false });
 }
 
@@ -214,6 +276,12 @@ function handlePlotToggle() {
 }
 
 function handleSerialLine(line) {
+  if (state.skipNextSerialLine) {
+    state.skipNextSerialLine = false;
+    setStatus("Skipped initial serial fragment");
+    return;
+  }
+
   const values = parseCsvLine(line);
 
   if (isHeaderRow(values)) {
@@ -224,7 +292,7 @@ function handleSerialLine(line) {
   const record = mapSerialValues(values, line);
 
   if (!record) {
-    setStatus("Skipped unreadable row");
+    setStatus("Skipped out-of-sync row");
     return;
   }
 
@@ -245,13 +313,23 @@ function mapSerialValues(values, rawLine) {
     return null;
   }
 
+  const normalizedValues = normalizeValuesForSchema(values, schema.columns);
+
+  if (!normalizedValues) {
+    return null;
+  }
+
   const fields = {};
   schema.columns.forEach((column, index) => {
-    fields[column.name] = values[index];
+    fields[column.name] = normalizedValues[index];
   });
 
-  const timestampRaw = getField(fields, FIELD_ALIASES.timestamp) || values[0];
+  const timestampRaw = getField(fields, FIELD_ALIASES.timestamp) || normalizedValues[0];
   const timestamp = parseTimestamp(timestampRaw);
+
+  if (!timestamp) {
+    return null;
+  }
 
   return {
     timestamp,
@@ -264,11 +342,22 @@ function mapSerialValues(values, rawLine) {
       pm25: numberField(fields, FIELD_ALIASES.pm25),
       vocLight: numberField(fields, FIELD_ALIASES.vocLight),
       vocHeavy: numberField(fields, FIELD_ALIASES.vocHeavy),
-      tvoc: numberField(fields, FIELD_ALIASES.tvoc),
       co: numberField(fields, FIELD_ALIASES.co),
       coAux: numberField(fields, FIELD_ALIASES.coAux),
     },
   };
+}
+
+function normalizeValuesForSchema(values, columns) {
+  if (values.length === columns.length) {
+    return values;
+  }
+
+  if (values.length === columns.length + 1 && values[values.length - 1] === "") {
+    return values.slice(0, -1);
+  }
+
+  return null;
 }
 
 function parseCsvLine(line) {
@@ -325,9 +414,15 @@ function numberField(fields, aliases) {
 }
 
 function parseTimestamp(value) {
-  const normalized = String(value || "").trim().replace(" ", "T");
+  const rawValue = String(value || "").trim();
+
+  if (!/^\d{4}-\d{1,2}-\d{1,2}[ T]\d{1,2}:\d{2}(?::\d{2})?/.test(rawValue)) {
+    return null;
+  }
+
+  const normalized = rawValue.replace(" ", "T");
   const parsed = new Date(normalized);
-  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 function resetData() {
@@ -353,7 +448,7 @@ function updateReadout(record, line) {
   setMetric("humidity", record.values.humidity, "%");
   setMetric("co2", record.values.co2, "ppm");
   setMetric("pm25", record.values.pm25, "ug/m^3");
-  setMetric("voc", firstFinite(record.values.vocLight, record.values.vocHeavy, record.values.tvoc), "");
+  setMetric("voc", firstFinite(record.values.vocLight, record.values.vocHeavy), "");
   setMetric("co", firstFinite(record.values.co, record.values.coAux), "ADU");
 }
 
@@ -430,6 +525,139 @@ function renderChart(chart) {
   });
 
   updateChartStats(chart, records);
+}
+
+function exportGraphPng() {
+  renderAll();
+
+  const grid = app.querySelector(".chart-grid");
+  const cards = [...grid.querySelectorAll(".chart-card:not([hidden])")];
+
+  if (cards.length === 0) {
+    setStatus("No visible plots to export");
+    return;
+  }
+
+  const gridRect = grid.getBoundingClientRect();
+  const scale = 2;
+  const padding = 32;
+  const headerHeight = 86;
+  const footerHeight = 30;
+  const exportCanvas = document.createElement("canvas");
+  const width = Math.ceil(gridRect.width + padding * 2);
+  const height = Math.ceil(gridRect.height + padding * 2 + headerHeight + footerHeight);
+  exportCanvas.width = width * scale;
+  exportCanvas.height = height * scale;
+
+  const context = exportCanvas.getContext("2d");
+  context.scale(scale, scale);
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, width, height);
+
+  drawExportHeader(context, width, padding);
+
+  cards.forEach((card) => {
+    drawExportCard(context, card, gridRect, padding, headerHeight);
+  });
+
+  context.fillStyle = "#5c6672";
+  context.font = "12px Arial, Helvetica, sans-serif";
+  context.fillText("HAQ Lab, University of Colorado", padding, height - 18);
+
+  const link = document.createElement("a");
+  link.href = exportCanvas.toDataURL("image/png");
+  link.download = `aqiq-live-view-${makeFileTimestamp()}.png`;
+  link.click();
+  setStatus("Graph PNG exported");
+}
+
+function drawExportHeader(context, width, padding) {
+  const schemaStatus = query("[data-schema-status]").textContent;
+  context.fillStyle = "#17202a";
+  context.font = "700 22px Arial, Helvetica, sans-serif";
+  context.fillText("AQIQ YPOD Live Visualization", padding, 34);
+
+  context.fillStyle = "#5c6672";
+  context.font = "13px Arial, Helvetica, sans-serif";
+  context.fillText(`Exported ${new Date().toLocaleString()}`, padding, 58);
+  context.fillText(schemaStatus, padding, 76);
+
+  context.strokeStyle = "#d9dee6";
+  context.beginPath();
+  context.moveTo(padding, 86);
+  context.lineTo(width - padding, 86);
+  context.stroke();
+}
+
+function drawExportCard(context, card, gridRect, padding, headerHeight) {
+  const rect = card.getBoundingClientRect();
+  const x = padding + rect.left - gridRect.left;
+  const y = padding + headerHeight + rect.top - gridRect.top;
+  const width = rect.width;
+  const height = rect.height;
+  const canvas = card.querySelector("canvas");
+  const title = card.querySelector("h2")?.textContent?.trim() || "";
+  const stats = card.querySelector("[data-chart-stats]")?.textContent?.trim() || "";
+  const legendItems = [...card.querySelectorAll(".chart-legend span")].map((item) => ({
+    color: item.querySelector("i")?.style.getPropertyValue("--swatch") || "#17202a",
+    label: item.textContent.trim(),
+  }));
+  const canvasTop = y + (canvas.getBoundingClientRect().top - rect.top);
+  const canvasHeight = height - (canvasTop - y) - 8;
+
+  context.fillStyle = "#ffffff";
+  context.strokeStyle = "#d9dee6";
+  context.lineWidth = 1;
+  roundRect(context, x, y, width, height, 8);
+  context.fill();
+  context.stroke();
+
+  context.fillStyle = "#17202a";
+  context.font = "700 13px Arial, Helvetica, sans-serif";
+  context.fillText(title, x + 12, y + 22);
+
+  context.fillStyle = "#5c6672";
+  context.font = "11px Arial, Helvetica, sans-serif";
+  context.textAlign = "right";
+  context.fillText(stats, x + width - 12, y + 22);
+  context.textAlign = "left";
+
+  let legendX = x + 12;
+  legendItems.forEach((item) => {
+    context.fillStyle = item.color;
+    context.beginPath();
+    context.arc(legendX + 4, y + 42, 4, 0, Math.PI * 2);
+    context.fill();
+
+    context.fillStyle = "#5c6672";
+    context.font = "11px Arial, Helvetica, sans-serif";
+    context.fillText(item.label, legendX + 12, y + 46);
+    legendX += context.measureText(item.label).width + 32;
+  });
+
+  context.drawImage(canvas, x + 8, canvasTop, width - 16, canvasHeight);
+}
+
+function roundRect(context, x, y, width, height, radius) {
+  context.beginPath();
+  context.moveTo(x + radius, y);
+  context.lineTo(x + width - radius, y);
+  context.quadraticCurveTo(x + width, y, x + width, y + radius);
+  context.lineTo(x + width, y + height - radius);
+  context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  context.lineTo(x + radius, y + height);
+  context.quadraticCurveTo(x, y + height, x, y + height - radius);
+  context.lineTo(x, y + radius);
+  context.quadraticCurveTo(x, y, x + radius, y);
+  context.closePath();
+}
+
+function makeFileTimestamp() {
+  return new Date()
+    .toISOString()
+    .replace(/[:.]/g, "-")
+    .replace("T", "_")
+    .slice(0, 19);
 }
 
 function visibleRecords() {

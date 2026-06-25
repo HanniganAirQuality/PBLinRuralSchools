@@ -61,6 +61,20 @@
         </fieldset>
       </div>
 
+      <section class="serial-readout" aria-label="Serial readout">
+        <div>
+          <span>Rows</span>
+          <strong data-row-count>0</strong>
+        </div>
+        <div>
+          <span>Last timestamp</span>
+          <strong data-last-time>--</strong>
+        </div>
+        <div>
+          <span>Latest row</span>
+          <code data-latest-line>--</code>
+        </div>
+      </section>
     </details>
 
     <section class="metric-strip" aria-label="Latest readings">
@@ -118,11 +132,7 @@
           </div>
           <span data-chart-stats="voc">--</span>
         </div>
-        <div class="chart-legend">
-          <span><i style="--swatch:#3ac831"></i>Light VOC</span>
-          <span><i style="--swatch:#02580e"></i>Heavy VOC</span>
-          <span><i style="--swatch:#ffd60a"></i>TVOC</span>
-        </div>
+        <div class="chart-legend" data-chart-legend="voc"></div>
         <canvas id="chart-voc" data-chart="voc"></canvas>
       </article>
 
@@ -143,10 +153,7 @@
           </div>
           <span data-chart-stats="co">--</span>
         </div>
-        <div class="chart-legend">
-          <span><i style="--swatch:#7da9ff"></i>CO</span>
-          <span><i style="--swatch:#4f46e5"></i>CO aux</span>
-        </div>
+        <div class="chart-legend" data-chart-legend="co"></div>
         <canvas id="chart-co" data-chart="co"></canvas>
       </article>
 
@@ -161,19 +168,8 @@
       </article>
     </section>
 
-    <section class="serial-readout" aria-label="Serial readout">
-      <div>
-        <span>Rows</span>
-        <strong data-row-count>0</strong>
-      </div>
-      <div>
-        <span>Last timestamp</span>
-        <strong data-last-time>--</strong>
-      </div>
-      <div>
-        <span>Latest row</span>
-        <code data-latest-line>--</code>
-      </div>
+    <section class="export-actions" aria-label="Export graph view">
+      <button type="button" data-export-png>Export graph view PNG</button>
     </section>
 
   </main>
