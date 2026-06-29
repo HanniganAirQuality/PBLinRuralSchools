@@ -5,26 +5,27 @@ export const YPOD_HEADER_LOG_PAGE =
   "https://github.com/HanniganAirQuality/All-POD-YAMLs/blob/main/YPOD_HeaderLog.yaml";
 
 const FALLBACK_SCHEMA = {
-  version: "YPOD_V4_0_4",
+  version: "YPOD_V4_1_0",
   section: "Serial_Calibrate",
   sourceUrl: YPOD_HEADER_LOG_URL,
   htmlUrl: YPOD_HEADER_LOG_PAGE,
   columns: [
     { name: "DateTime", unit: "timestamp" },
-    { name: "BME180_Temperature", unit: "Celsius" },
-    { name: "BME180_Pressure", unit: "millibar" },
-    { name: "SHT25_Temperature", unit: "Celsius" },
-    { name: "SHT25_Humidity", unit: "%RH" },
-    { name: "Calibrated_TVOC", unit: "ppm" },
-    { name: "Fig2600_LightVOC", unit: "ADU" },
-    { name: "Fig2602_HeavyVOC", unit: "ADU" },
-    { name: "Ozone", unit: "ADU" },
-    { name: "CO_ch1", unit: "ADU" },
-    { name: "CO_ch2", unit: "ADU" },
-    { name: "CO2", unit: "ppm" },
-    { name: "PM10_ENV", unit: "ug/m^3" },
-    { name: "PM25_ENV", unit: "ug/m^3" },
-    { name: "PM100_ENV", unit: "ug/m^3" },
+    { name: "BME180_Temperature", unit: "Celsius", defaultAxisRange: [-20, 50] },
+    { name: "BME180_Pressure", unit: "millibar", defaultAxisRange: [900, 1100] },
+    { name: "SHT25_Temperature", unit: "Celsius", defaultAxisRange: [-20, 50] },
+    { name: "SHT25_Humidity", unit: "%RH", defaultAxisRange: [0, 100] },
+    { name: "Calibrated_TVOC", unit: "ppm", defaultAxisRange: [0, 10000] },
+    { name: "Fig2600_LightVOC", unit: "ADU", defaultAxisRange: [0, 10000] },
+    { name: "Fig2602_HeavyVOC", unit: "ADU", defaultAxisRange: [0, 10000] },
+    { name: "Ozone", unit: "ADU", defaultAxisRange: [0, 1000] },
+    { name: "Calibrated_CO", unit: "ppm", defaultAxisRange: [0, 10000] },
+    { name: "CO_ch1", unit: "ADU", defaultAxisRange: [0, 10000] },
+    { name: "CO_ch2", unit: "ADU", defaultAxisRange: [0, 10000] },
+    { name: "CO2", unit: "ppm", defaultAxisRange: [0, 5000] },
+    { name: "PM10_ENV", unit: "ug/m^3", defaultAxisRange: [0, 100] },
+    { name: "PM25_ENV", unit: "ug/m^3", defaultAxisRange: [0, 100] },
+    { name: "PM100_ENV", unit: "ug/m^3", defaultAxisRange: [0, 100] },
   ],
 };
 
@@ -211,6 +212,7 @@ function parseSectionColumns(lines, startIndex, endIndex) {
         name: fieldMatch[1],
         unit: "",
         sensor: "",
+        defaultAxisRange: null,
       };
       columns.push(currentColumn);
       continue;
@@ -225,9 +227,29 @@ function parseSectionColumns(lines, startIndex, endIndex) {
     if (propertyMatch) {
       currentColumn[propertyMatch[1]] = cleanYamlScalar(propertyMatch[2]);
     }
+
+    const defaultAxisMatch = line.match(/^ {6}default_axis_range:\s*(.+?)\s*$/);
+
+    if (defaultAxisMatch) {
+      currentColumn.defaultAxisRange = parseDefaultAxisRange(defaultAxisMatch[1]);
+    }
   }
 
   return columns;
+}
+
+function parseDefaultAxisRange(value) {
+  const parts = cleanYamlScalar(value)
+    .replace(/^\[/, "")
+    .replace(/\]$/, "")
+    .split(",")
+    .map((part) => Number(part.trim()));
+
+  if (parts.length !== 2 || parts.some((part) => !Number.isFinite(part))) {
+    return null;
+  }
+
+  return parts[0] < parts[1] ? parts : [parts[1], parts[0]];
 }
 
 function cleanYamlScalar(value) {

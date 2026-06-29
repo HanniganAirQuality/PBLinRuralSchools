@@ -6,7 +6,9 @@ import {
 } from "../core/ypod-yaml.js";
 
 const DEFAULT_BAUD_RATE = 9600;
-const DISPLAY_WINDOW_MS = 5 * 60 * 1000;
+const DEFAULT_TIMELINE_MINUTES = 5;
+const MIN_TIMELINE_MINUTES = 0.25;
+const MAX_TIMELINE_MINUTES = 1440;
 const MAX_RECORDS = 2400;
 
 const FIELD_ALIASES = {
@@ -71,6 +73,7 @@ const state = {
   serial: null,
   skipNextSerialLine: false,
   renderQueued: false,
+  displayWindowMs: DEFAULT_TIMELINE_MINUTES * 60 * 1000,
 };
 
 if (app) {
@@ -99,6 +102,7 @@ function bindControls() {
   query("[data-export-png]").addEventListener("click", exportGraphPng);
   query("[data-yaml-version]").addEventListener("change", handleVersionChange);
   query("[data-yaml-section]").addEventListener("change", applySelectedSchema);
+  query("[data-timeline-minutes]").addEventListener("input", handleTimelineSizeChange);
   app.querySelectorAll("[data-plot-toggle]").forEach((toggle) => {
     toggle.addEventListener("change", handlePlotToggle);
   });
@@ -150,6 +154,17 @@ function populateSectionSelect() {
 function handleVersionChange() {
   populateSectionSelect();
   applySelectedSchema();
+}
+
+function handleTimelineSizeChange(event) {
+  const minutes = clampNumber(
+    Number(event.target.value),
+    MIN_TIMELINE_MINUTES,
+    MAX_TIMELINE_MINUTES,
+    DEFAULT_TIMELINE_MINUTES,
+  );
+  state.displayWindowMs = minutes * 60 * 1000;
+  queueRender();
 }
 
 function applySelectedSchema() {
@@ -516,7 +531,7 @@ function renderChart(chart) {
   const times = records.map((record) => record.timestamp.getTime());
   const xMin = Math.min(...times);
   const xMax = Math.max(...times);
-  const yRange = getYRange(seriesValues, chart.minZero);
+  const yRange = getYRange(seriesValues, chart.minZero, getDefaultYRange(chart));
 
   drawGrid(context, plot, width, height, xMin, xMax, yRange);
 
@@ -666,12 +681,34 @@ function visibleRecords() {
   }
 
   const latest = state.records[state.records.length - 1].timestamp.getTime();
-  return state.records.filter((record) => latest - record.timestamp.getTime() <= DISPLAY_WINDOW_MS);
+  return state.records.filter((record) => latest - record.timestamp.getTime() <= state.displayWindowMs);
 }
 
-function getYRange(values, minZero = false) {
+function getDefaultYRange(chart) {
+  const ranges = chart.series
+    .map((series) => resolveColumnForSeries(series.key)?.defaultAxisRange)
+    .filter(isValidAxisRange);
+
+  if (ranges.length === 0) {
+    return null;
+  }
+
+  return {
+    min: Math.min(...ranges.map((range) => range[0])),
+    max: Math.max(...ranges.map((range) => range[1])),
+  };
+}
+
+function getYRange(values, minZero = false, defaultRange = null) {
   let min = Math.min(...values);
   let max = Math.max(...values);
+
+  if (defaultRange) {
+    return {
+      min: Math.min(defaultRange.min, min),
+      max: Math.max(defaultRange.max, max),
+    };
+  }
 
   if (minZero) {
     min = Math.min(0, min);
@@ -797,6 +834,21 @@ function scaleValue(value, fromMin, fromMax, toMin, toMax) {
   }
 
   return toMin + ((value - fromMin) / (fromMax - fromMin)) * (toMax - toMin);
+}
+
+function isValidAxisRange(range) {
+  return Array.isArray(range) &&
+    range.length === 2 &&
+    range.every((value) => Number.isFinite(value)) &&
+    range[0] < range[1];
+}
+
+function clampNumber(value, min, max, fallback) {
+  if (!Number.isFinite(value)) {
+    return fallback;
+  }
+
+  return Math.min(max, Math.max(min, value));
 }
 
 function firstFinite(...values) {
