@@ -304,6 +304,7 @@ function handlePlotToggle() {
 
 function handleSerialLine(podKey, line) {
   const pod = state.pods[podKey];
+  const receivedAt = new Date();
   const values = parseCsvLine(line);
   updateRawDebugReadout(podKey, line, values);
 
@@ -312,7 +313,7 @@ function handleSerialLine(podKey, line) {
     return;
   }
 
-  if (pod.skipNextSerialLine && !hasTimestampFirst(values)) {
+  if (pod.skipNextSerialLine && !isCsvLikeLine(line, values)) {
     pod.skipNextSerialLine = false;
     setPodStatus(podKey, line);
     return;
@@ -320,15 +321,10 @@ function handleSerialLine(podKey, line) {
 
   pod.skipNextSerialLine = false;
 
-  if (!hasTimestampFirst(values)) {
-    setPodStatus(podKey, line);
-    return;
-  }
-
-  const record = mapSerialValues(values, line);
+  const record = mapSerialValues(values, line, receivedAt);
 
   if (!record) {
-    setPodStatus(podKey, "Unexpected Fire-IQ row");
+    reportPodSerialNotice(podKey, line, values);
     return;
   }
 
@@ -355,7 +351,7 @@ function markReadSuccessful(podKey) {
   setPodStatus(podKey, "Connected");
 }
 
-function mapSerialValues(values, rawLine) {
+function mapSerialValues(values, rawLine, receivedAt = new Date()) {
   let schema = state.schema;
 
   if (!schema?.columns?.length || values.length === 0) {
@@ -384,15 +380,8 @@ function mapSerialValues(values, rawLine) {
     fields[column.name] = normalizedValues[index] ?? "";
   });
 
-  const timestampRaw = getField(fields, FIELD_ALIASES.timestamp) || normalizedValues[0];
-  const timestamp = parseTimestamp(timestampRaw);
-
-  if (!timestamp) {
-    return null;
-  }
-
   return {
-    timestamp,
+    timestamp: receivedAt,
     rawLine,
     fields,
     values: {
@@ -533,20 +522,16 @@ function isHeaderRow(values) {
   return first === "datetime" || first === "timestamp";
 }
 
-function hasTimestampFirst(values) {
-  return Boolean(parseTimestamp(values[0]));
+function isCsvLikeLine(line, values = parseCsvLine(line)) {
+  return line.includes(",") || values.length > 1;
 }
 
-function parseTimestamp(value) {
-  const rawValue = String(value || "").trim();
-
-  if (!/^\d{4}-\d{1,2}-\d{1,2}[ T]\d{1,2}:\d{2}(?::\d{2})?/.test(rawValue)) {
-    return null;
+function reportPodSerialNotice(podKey, line, values) {
+  if (isCsvLikeLine(line, values)) {
+    return;
   }
 
-  const normalized = rawValue.replace(" ", "T");
-  const parsed = new Date(normalized);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+  setPodStatus(podKey, line);
 }
 
 function updateMaxima(podKey, record) {
