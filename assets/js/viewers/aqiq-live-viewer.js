@@ -21,6 +21,12 @@ const COLUMN_CHART_COLORS = [
   "#db2777",
   "#4f46e5",
 ];
+const EXPORT_CHART_THEME = {
+  background: "#ffffff",
+  grid: "#d9dee6",
+  text: "#5c6672",
+  emptyText: "#798391",
+};
 
 const FIELD_ALIASES = {
   timestamp: ["DateTime", "Timestamp", "Time"],
@@ -119,6 +125,8 @@ function bindControls() {
   });
   query("[data-column-toggles]").addEventListener("change", handleColumnPlotToggle);
   window.addEventListener("resize", queueRender);
+  const colorScheme = window.matchMedia?.("(prefers-color-scheme: dark)");
+  colorScheme?.addEventListener?.("change", queueRender);
 }
 
 async function loadYamlSettings() {
@@ -683,17 +691,25 @@ function renderAll() {
 
 function renderChart(chart) {
   const canvas = document.getElementById(chart.canvas);
-  const context = canvas.getContext("2d");
   const rect = canvas.getBoundingClientRect();
-  const scale = window.devicePixelRatio || 1;
-  const width = Math.max(260, rect.width);
-  const height = Math.max(130, rect.height);
+
+  renderChartCanvas(canvas, chart, {
+    width: Math.max(260, rect.width),
+    height: Math.max(130, rect.height),
+    scale: window.devicePixelRatio || 1,
+    theme: getLiveChartTheme(),
+    updateStats: true,
+  });
+}
+
+function renderChartCanvas(canvas, chart, { width, height, scale = 1, theme, updateStats = false }) {
+  const context = canvas.getContext("2d");
 
   canvas.width = Math.floor(width * scale);
   canvas.height = Math.floor(height * scale);
   context.setTransform(scale, 0, 0, scale, 0, 0);
   context.clearRect(0, 0, width, height);
-  context.fillStyle = "#ffffff";
+  context.fillStyle = theme.background;
   context.fillRect(0, 0, width, height);
 
   const records = visibleRecords();
@@ -704,8 +720,10 @@ function renderChart(chart) {
   );
 
   if (records.length === 0 || seriesValues.length === 0) {
-    drawEmptyChart(context, width);
-    query(`[data-chart-stats="${chart.stats}"]`).textContent = "--";
+    drawEmptyChart(context, width, theme);
+    if (updateStats) {
+      query(`[data-chart-stats="${chart.stats}"]`).textContent = "--";
+    }
     return;
   }
 
@@ -720,13 +738,15 @@ function renderChart(chart) {
   const xMax = Math.max(...times);
   const yRange = getYRange(seriesValues, chart.minZero, getDefaultYRange(chart));
 
-  drawGrid(context, plot, width, height, xMin, xMax, yRange);
+  drawGrid(context, plot, width, height, xMin, xMax, yRange, theme);
 
   chart.series.forEach((series) => {
     drawSeries(context, records, series, plot, xMin, xMax, yRange, chart.marker);
   });
 
-  updateChartStats(chart, records);
+  if (updateStats) {
+    updateChartStats(chart, records);
+  }
 }
 
 function exportGraphPng() {
@@ -798,6 +818,7 @@ function drawExportCard(context, card, gridRect, padding, headerHeight) {
   const width = rect.width;
   const height = rect.height;
   const canvas = card.querySelector("canvas");
+  const chart = getAllCharts()[card.dataset.chartCard];
   const title = card.querySelector("h2")?.textContent?.trim() || "";
   const stats = card.querySelector("[data-chart-stats]")?.textContent?.trim() || "";
   const legendItems = [...card.querySelectorAll(".chart-legend span")].map((item) => ({
@@ -837,7 +858,23 @@ function drawExportCard(context, card, gridRect, padding, headerHeight) {
     legendX += context.measureText(item.label).width + 32;
   });
 
-  context.drawImage(canvas, x + 8, canvasTop, width - 16, canvasHeight);
+  const exportChartCanvas = makeExportChartCanvas(canvas, chart);
+  context.drawImage(exportChartCanvas, x + 8, canvasTop, width - 16, canvasHeight);
+}
+
+function makeExportChartCanvas(sourceCanvas, chart) {
+  if (!chart) {
+    return sourceCanvas;
+  }
+
+  const rect = sourceCanvas.getBoundingClientRect();
+  const canvas = document.createElement("canvas");
+  renderChartCanvas(canvas, chart, {
+    width: Math.max(260, rect.width),
+    height: Math.max(130, rect.height),
+    theme: EXPORT_CHART_THEME,
+  });
+  return canvas;
 }
 
 function roundRect(context, x, y, width, height, radius) {
@@ -960,11 +997,11 @@ function getYRange(values, minZero = false, defaultRange = null) {
   };
 }
 
-function drawGrid(context, plot, width, height, xMin, xMax, yRange) {
-  context.strokeStyle = "#d9dee6";
+function drawGrid(context, plot, width, height, xMin, xMax, yRange, theme) {
+  context.strokeStyle = theme.grid;
   context.lineWidth = 1;
   context.font = "11px Arial, Helvetica, sans-serif";
-  context.fillStyle = "#5c6672";
+  context.fillStyle = theme.text;
 
   for (let step = 0; step <= 4; step += 1) {
     const ratio = step / 4;
@@ -1027,8 +1064,8 @@ function drawSeries(context, records, series, plot, xMin, xMax, yRange, marker) 
   }
 }
 
-function drawEmptyChart(context, width) {
-  context.strokeStyle = "#d9dee6";
+function drawEmptyChart(context, width, theme) {
+  context.strokeStyle = theme.grid;
   context.lineWidth = 1;
 
   for (let step = 1; step < 5; step += 1) {
@@ -1039,9 +1076,23 @@ function drawEmptyChart(context, width) {
     context.stroke();
   }
 
-  context.fillStyle = "#798391";
+  context.fillStyle = theme.emptyText;
   context.font = "12px Arial, Helvetica, sans-serif";
   context.fillText("Awaiting data", 14, 24);
+}
+
+function getLiveChartTheme() {
+  return {
+    background: cssVar("--chart-background", "#ffffff"),
+    grid: cssVar("--line", "#d9dee6"),
+    text: cssVar("--muted", "#5c6672"),
+    emptyText: cssVar("--disabled", "#798391"),
+  };
+}
+
+function cssVar(name, fallback) {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
 }
 
 function updateChartStats(chart, records) {
