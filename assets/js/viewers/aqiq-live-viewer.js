@@ -1,3 +1,4 @@
+import { showSafariLiveViewerWarning } from "../core/browser-warning.js";
 import { SerialLineReader } from "../core/serial-lines.js";
 import {
   YPOD_HEADER_LOG_PAGE,
@@ -85,6 +86,7 @@ const state = {
 };
 
 if (app) {
+  showSafariLiveViewerWarning();
   init();
 }
 
@@ -422,6 +424,11 @@ function handleSerialLine(line) {
     return;
   }
 
+  if (!hasTimestampFirst(values)) {
+    setStatus(line);
+    return;
+  }
+
   const record = mapSerialValues(values, line);
 
   if (!record) {
@@ -538,6 +545,10 @@ function parseCsvLine(line) {
 function isHeaderRow(values) {
   const first = values[0]?.toLowerCase() || "";
   return first === "datetime" || first === "timestamp";
+}
+
+function hasTimestampFirst(values) {
+  return Boolean(parseTimestamp(values[0]));
 }
 
 function getField(fields, aliases) {
