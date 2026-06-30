@@ -415,6 +415,7 @@ function handleSerialLine(line) {
   }
 
   const values = parseCsvLine(line);
+  updateRawDebugReadout(line, values);
 
   if (isHeaderRow(values)) {
     setStatus("Header received");
@@ -434,7 +435,7 @@ function handleSerialLine(line) {
     state.records.splice(0, state.records.length - MAX_RECORDS);
   }
 
-  updateReadout(record, line);
+  updateReadout(record);
   queueRender();
 }
 
@@ -581,10 +582,9 @@ function resetData() {
   renderAll();
 }
 
-function updateReadout(record, line) {
+function updateReadout(record) {
   query("[data-row-count]").textContent = String(state.records.length);
   query("[data-last-time]").textContent = formatTime(record.timestamp);
-  query("[data-latest-line]").textContent = line;
   renderDebugValues(record);
 
   setMetric("temperature", record.values.temperature, "deg C");
@@ -595,16 +595,21 @@ function updateReadout(record, line) {
   setMetric("co", record.values.co, "ppm");
 }
 
-function renderDebugValues(record = null) {
+function updateRawDebugReadout(line, values) {
+  query("[data-latest-line]").textContent = line;
+  renderDebugValues(null, values);
+}
+
+function renderDebugValues(record = null, values = null) {
   const target = query("[data-debug-values]");
   const columns = state.schema?.columns || [];
   const fragment = document.createDocumentFragment();
 
-  columns.forEach((column) => {
+  columns.forEach((column, index) => {
     const item = document.createElement("div");
     const name = document.createElement("span");
     const value = document.createElement("code");
-    const rawValue = record?.fields?.[column.name];
+    const rawValue = record?.fields?.[column.name] ?? values?.[index];
 
     item.className = "debug-value";
     name.textContent = formatFieldLabel(column.name);
