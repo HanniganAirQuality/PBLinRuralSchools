@@ -13,6 +13,7 @@ const MAX_TIMELINE_MINUTES = 1440;
 const MAX_RECORDS = 2400;
 const MIN_CHART_WIDTH = 220;
 const MIN_CHART_HEIGHT = 88;
+const CHART_DRAG_MIME = "application/x-haq-chart-card";
 const COLUMN_CHART_COLORS = [
   "#0f766e",
   "#dc2626",
@@ -90,6 +91,7 @@ const state = {
   skipNextSerialLine: false,
   renderQueued: false,
   displayWindowMs: DEFAULT_TIMELINE_MINUTES * 60 * 1000,
+  draggingChartKey: null,
   hasSuccessfulRead: false,
   statusMessage: "",
   statusRepeatCount: 0,
@@ -127,9 +129,31 @@ function bindControls() {
     toggle.addEventListener("change", handlePlotToggle);
   });
   query("[data-column-toggles]").addEventListener("change", handleColumnPlotToggle);
+  bindChartDragReordering();
   window.addEventListener("resize", queueRender);
   const colorScheme = window.matchMedia?.("(prefers-color-scheme: dark)");
   colorScheme?.addEventListener?.("change", queueRender);
+}
+
+function bindChartDragReordering() {
+  const grid = query(".chart-grid");
+  grid.addEventListener("dragstart", handleChartDragStart);
+  grid.addEventListener("dragover", handleChartDragOver);
+  grid.addEventListener("dragleave", handleChartDragLeave);
+  grid.addEventListener("drop", handleChartDrop);
+  grid.addEventListener("dragend", handleChartDragEnd);
+  refreshDraggableChartCards();
+}
+
+function refreshDraggableChartCards() {
+  query(".chart-grid")
+    .querySelectorAll(".chart-card")
+    .forEach(prepareChartCardDrag);
+}
+
+function prepareChartCardDrag(card) {
+  card.draggable = true;
+  card.setAttribute("aria-grabbed", "false");
 }
 
 async function loadYamlSettings() {
@@ -392,7 +416,9 @@ function syncColumnChartCards() {
       return;
     }
 
-    grid.append(makeColumnChartCard(chart));
+    const card = makeColumnChartCard(chart);
+    prepareChartCardDrag(card);
+    grid.append(card);
   });
 }
 
@@ -425,6 +451,173 @@ function makeColumnChartCard(chart) {
   heading.append(titleWrap, stats);
   card.append(heading, canvas);
   return card;
+}
+
+function handleChartDragStart(event) {
+  const grid = query(".chart-grid");
+  const card = closestVisibleChartCard(event.target);
+
+  if (!card || !grid.contains(card)) {
+    return;
+  }
+
+  state.draggingChartKey = card.dataset.chartCard;
+  card.classList.add("is-chart-dragging");
+  card.setAttribute("aria-grabbed", "true");
+  grid.classList.add("is-chart-drag-active");
+
+  event.dataTransfer.effectAllowed = "move";
+  event.dataTransfer.setData(CHART_DRAG_MIME, state.draggingChartKey);
+  event.dataTransfer.setData(
+    "text/plain",
+    card.querySelector("h2")?.textContent?.trim() || state.draggingChartKey,
+  );
+}
+
+function handleChartDragOver(event) {
+  const grid = query(".chart-grid");
+  const draggedCard = getDraggedChartCard(event);
+
+  if (!draggedCard) {
+    return;
+  }
+
+  event.preventDefault();
+  event.dataTransfer.dropEffect = "move";
+
+  const target = closestVisibleChartCard(event.target);
+  clearChartDropIndicators(target);
+
+  if (!target || target === draggedCard || !grid.contains(target)) {
+    return;
+  }
+
+  const placement = getChartDropPlacement(event, target, grid);
+  target.classList.toggle("is-chart-drop-before", placement === "before");
+  target.classList.toggle("is-chart-drop-after", placement === "after");
+}
+
+function handleChartDragLeave(event) {
+  const grid = query(".chart-grid");
+  const relatedTarget = event.relatedTarget;
+
+  if (!(relatedTarget instanceof Node) || !grid.contains(relatedTarget)) {
+    clearChartDropIndicators();
+  }
+}
+
+function handleChartDrop(event) {
+  const grid = query(".chart-grid");
+  const draggedCard = getDraggedChartCard(event);
+
+  if (!draggedCard) {
+    return;
+  }
+
+  event.preventDefault();
+
+  const target = closestVisibleChartCard(event.target);
+  const didMove = moveDraggedChartCard(event, grid, draggedCard, target);
+
+  clearChartDragState();
+
+  if (didMove) {
+    queueRender();
+  }
+}
+
+function handleChartDragEnd() {
+  clearChartDragState();
+}
+
+function moveDraggedChartCard(event, grid, draggedCard, target) {
+  if (!target || !grid.contains(target)) {
+    grid.append(draggedCard);
+    return true;
+  }
+
+  if (target === draggedCard) {
+    return false;
+  }
+
+  const placement = getChartDropPlacement(event, target, grid);
+
+  if (placement === "before") {
+    target.before(draggedCard);
+  } else {
+    target.after(draggedCard);
+  }
+
+  return true;
+}
+
+function getChartDropPlacement(event, target, grid) {
+  const rect = target.getBoundingClientRect();
+  const columnCount = getGridColumnCount(grid);
+
+  if (columnCount > 1) {
+    const midpoint = rect.left + rect.width / 2;
+    return event.clientX < midpoint ? "before" : "after";
+  }
+
+  const midpoint = rect.top + rect.height / 2;
+  return event.clientY < midpoint ? "before" : "after";
+}
+
+function getGridColumnCount(grid) {
+  const columns = window.getComputedStyle(grid).gridTemplateColumns;
+
+  if (!columns || columns === "none") {
+    return 1;
+  }
+
+  return Math.max(1, columns.split(/\s+/).filter(Boolean).length);
+}
+
+function getDraggedChartCard(event) {
+  const key = state.draggingChartKey || event.dataTransfer?.getData(CHART_DRAG_MIME);
+
+  if (!key) {
+    return null;
+  }
+
+  return [...query(".chart-grid").querySelectorAll(".chart-card")]
+    .find((card) => card.dataset.chartCard === key) || null;
+}
+
+function closestVisibleChartCard(target) {
+  if (!(target instanceof Element)) {
+    return null;
+  }
+
+  return target.closest(".chart-card:not([hidden])");
+}
+
+function clearChartDropIndicators(exceptCard = null) {
+  query(".chart-grid")
+    .querySelectorAll(".is-chart-drop-before, .is-chart-drop-after")
+    .forEach((card) => {
+      if (card === exceptCard) {
+        return;
+      }
+
+      card.classList.remove("is-chart-drop-before", "is-chart-drop-after");
+    });
+}
+
+function clearChartDragState() {
+  const grid = query(".chart-grid");
+  const draggedCard = getDraggedChartCard({ dataTransfer: null });
+
+  clearChartDropIndicators();
+  grid.classList.remove("is-chart-drag-active");
+
+  if (draggedCard) {
+    draggedCard.classList.remove("is-chart-dragging");
+    draggedCard.setAttribute("aria-grabbed", "false");
+  }
+
+  state.draggingChartKey = null;
 }
 
 function handleSerialLine(line) {
