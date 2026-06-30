@@ -696,6 +696,14 @@ input {
   gap: 0.75rem;
 }
 
+.chart-heading > div {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
 .chart-heading h2 {
   margin-bottom: 0;
   font-size: 0.76rem;
@@ -713,6 +721,25 @@ input {
   white-space: nowrap;
 }
 
+.chart-split-button {
+  min-height: 1.25rem;
+  border-color: var(--accent);
+  border-radius: 999px;
+  padding: 0 0.45rem;
+  color: var(--ink);
+  background: var(--accent);
+  font-size: 0.58rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.chart-split-button:hover,
+.chart-split-button:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
+  outline: none;
+}
+
 .chart-legend {
   display: flex;
   align-items: center;
@@ -727,32 +754,6 @@ input {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-}
-
-.chart-legend button {
-  width: 1rem;
-  height: 1rem;
-  min-width: 1rem;
-  min-height: 1rem;
-  flex: 0 0 1rem;
-  border: 1px solid var(--line);
-  border-radius: 50%;
-  padding: 0;
-  color: var(--muted);
-  background: var(--surface-panel);
-  display: inline-grid;
-  place-items: center;
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.62rem;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.chart-legend button:hover,
-.chart-legend button:focus-visible {
-  border-color: var(--accent);
-  color: var(--ink);
 }
 
 .chart-legend i {

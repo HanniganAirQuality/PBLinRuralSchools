@@ -318,23 +318,13 @@ function resolveColumnForSeries(seriesKey) {
     .find(Boolean);
 }
 
-function makeLegendItem(color, label, { removeKey = "", removeLabel = "" } = {}) {
+function makeLegendItem(color, label) {
   const item = document.createElement("span");
   const swatch = document.createElement("i");
   swatch.style.setProperty("--swatch", color);
   swatch.style.setProperty("--swatch-dark", invertHexColor(color));
   item.dataset.exportLabel = label;
   item.append(swatch, document.createTextNode(label));
-
-  if (removeKey) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.dataset.removeCombinedChart = removeKey;
-    button.setAttribute("aria-label", `Remove ${removeLabel || label}`);
-    button.textContent = "x";
-    item.append(button);
-  }
-
   return item;
 }
 
@@ -343,6 +333,7 @@ function refreshChartCardDisplay(card, chart = null) {
   const displayChart = chart || (baseChart ? makeRenderableSourceChart(card.dataset.chartCard, baseChart) : null);
 
   setChartCardTitle(card, displayChart);
+  updateChartSplitControl(card, displayChart);
   updateChartCardLegend(card, displayChart);
   card.classList.toggle("is-chart-combined", Boolean(displayChart?.isCombined));
 }
@@ -371,6 +362,32 @@ function setChartCardTitle(card, chart) {
   title.replaceChildren(...nodes);
 }
 
+function updateChartSplitControl(card, chart) {
+  const titleWrap = card.querySelector(".chart-heading > div");
+  let button = titleWrap?.querySelector("[data-split-combined-chart]");
+
+  if (!titleWrap) {
+    return;
+  }
+
+  if (!chart?.isCombined) {
+    button?.remove();
+    return;
+  }
+
+  if (!button) {
+    button = document.createElement("button");
+    button.type = "button";
+    button.className = "chart-split-button";
+    button.dataset.splitCombinedChart = "";
+    titleWrap.append(button);
+  }
+
+  button.dataset.splitCombinedChart = chart.key;
+  button.textContent = "SPLIT";
+  button.setAttribute("aria-label", `Split ${chart.title}`);
+}
+
 function updateChartCardLegend(card, chart) {
   let legend = card.querySelector(".chart-legend");
   const hasNativeLegend = legend?.hasAttribute("data-chart-legend") || false;
@@ -397,8 +414,6 @@ function updateChartCardLegend(card, chart) {
 }
 
 function makeLegendItemsForChart(chart) {
-  const removableSourceKeys = new Set();
-
   return chart.series.map((series) => {
     const column = resolveColumnForSeries(series.key);
     const fieldLabel = column ? formatFieldLabel(column.name) : series.sourceTitle || series.key;
@@ -415,20 +430,7 @@ function makeLegendItemsForChart(chart) {
       labelParts.push(series.axis === "right" ? "(R)" : "(L)");
     }
 
-    const removeKey = chart.isCombined &&
-      series.sourceKey !== chart.key &&
-      !removableSourceKeys.has(series.sourceKey)
-      ? series.sourceKey
-      : "";
-
-    if (removeKey) {
-      removableSourceKeys.add(removeKey);
-    }
-
-    return makeLegendItem(series.color, labelParts.join(" "), {
-      removeKey,
-      removeLabel: sourceLabel,
-    });
+    return makeLegendItem(series.color, labelParts.join(" "));
   });
 }
 
@@ -564,7 +566,7 @@ function makeColumnChartCard(chart) {
 
 function handleChartGridClick(event) {
   const target = event.target instanceof Element ? event.target : event.target.parentElement;
-  const button = target?.closest("[data-remove-combined-chart]");
+  const button = target?.closest("[data-split-combined-chart]");
 
   if (!button) {
     return;
@@ -572,7 +574,7 @@ function handleChartGridClick(event) {
 
   event.preventDefault();
   event.stopPropagation();
-  removeChartFromGroups(button.dataset.removeCombinedChart);
+  splitChartGroup(button.dataset.splitCombinedChart);
   queueRender();
 }
 
@@ -827,6 +829,40 @@ function removeChartFromGroups(chartKey, { reveal = true, announce = true } = {}
     setStatus("Plot split out");
   }
 
+  return true;
+}
+
+function splitChartGroup(chartKey) {
+  const rootKey = getRootChartKey(chartKey);
+  const groupKeys = state.chartGroups[rootKey];
+  const rootCard = getChartCard(rootKey);
+
+  if (!groupKeys || groupKeys.length < 2) {
+    return false;
+  }
+
+  delete state.chartGroups[rootKey];
+
+  let anchorCard = rootCard;
+  groupKeys.forEach((key) => {
+    const card = getChartCard(key);
+
+    if (!card) {
+      return;
+    }
+
+    delete card.dataset.combinedInto;
+
+    if (anchorCard && card !== anchorCard) {
+      anchorCard.after(card);
+    }
+
+    anchorCard = card;
+    applyChartCardVisibility(card);
+    refreshChartCardDisplay(card);
+  });
+
+  setStatus("Plots split");
   return true;
 }
 
