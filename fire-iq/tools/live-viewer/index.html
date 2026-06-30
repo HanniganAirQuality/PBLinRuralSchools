@@ -21,30 +21,18 @@
         <p class="eyebrow">Fire-IQ live viewer</p>
         <h1 id="page-title">Dual YPOD Live Visualization</h1>
       </div>
-
-      <div class="schema-card" aria-live="polite">
-        <span class="schema-label">YAML</span>
-        <a data-schema-link href="https://github.com/HanniganAirQuality/All-POD-YAMLs/blob/main/YPOD_HeaderLog.yaml">YPOD_HeaderLog.yaml</a>
-        <span data-schema-status>Loading Serial_Calibrate schema...</span>
-      </div>
     </section>
 
     <section class="live-controls fire-pod-controls" aria-label="Live viewer controls">
       <article class="pod-control-card">
-        <label class="control-group" for="pod-1-id">
-          <span>POD 1 ID</span>
-          <input id="pod-1-id" type="text" value="YPODF2" data-pod-id="pod1">
-        </label>
+        <input id="pod-1-id" class="pod-label-input" type="text" placeholder="POD 1 label" aria-label="POD 1 label" data-pod-id="pod1">
         <button class="primary-action" type="button" data-connect-pod="pod1">Connect</button>
         <button type="button" data-disconnect-pod="pod1" disabled>Disconnect</button>
         <div class="connection-status" data-pod-status="pod1" aria-live="polite">Idle</div>
       </article>
 
       <article class="pod-control-card">
-        <label class="control-group" for="pod-2-id">
-          <span>POD 2 ID</span>
-          <input id="pod-2-id" type="text" value="YPODG2" data-pod-id="pod2">
-        </label>
+        <input id="pod-2-id" class="pod-label-input" type="text" placeholder="POD 2 label" aria-label="POD 2 label" data-pod-id="pod2">
         <button class="primary-action" type="button" data-connect-pod="pod2">Connect</button>
         <button type="button" data-disconnect-pod="pod2" disabled>Disconnect</button>
         <div class="connection-status" data-pod-status="pod2" aria-live="polite">Idle</div>
@@ -65,6 +53,12 @@
           <span>YAML type</span>
           <select id="yaml-section" data-yaml-section></select>
         </label>
+
+        <div class="schema-card advanced-schema-card" aria-live="polite">
+          <span class="schema-label">YAML source</span>
+          <a data-schema-link href="https://github.com/HanniganAirQuality/All-POD-YAMLs/blob/main/YPOD_HeaderLog.yaml">YPOD_HeaderLog.yaml</a>
+          <span data-schema-status>Loading Serial_Calibrate schema...</span>
+        </div>
 
         <label class="control-group" for="timeline-minutes">
           <span>Timeline size (min)</span>

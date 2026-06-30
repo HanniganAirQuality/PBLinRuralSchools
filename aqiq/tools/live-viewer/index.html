@@ -21,12 +21,6 @@
         <p class="eyebrow">AQIQ live viewer</p>
         <h1 id="page-title">YPOD Live Visualization</h1>
       </div>
-
-      <div class="schema-card" aria-live="polite">
-        <span class="schema-label">YAML</span>
-        <a data-schema-link href="https://github.com/HanniganAirQuality/All-POD-YAMLs/blob/main/YPOD_HeaderLog.yaml">YPOD_HeaderLog.yaml</a>
-        <span data-schema-status>Loading Serial_Calibrate schema...</span>
-      </div>
     </section>
 
     <section class="live-controls" aria-label="Live viewer controls">
@@ -49,6 +43,12 @@
           <span>YAML type</span>
           <select id="yaml-section" data-yaml-section></select>
         </label>
+
+        <div class="schema-card advanced-schema-card" aria-live="polite">
+          <span class="schema-label">YAML source</span>
+          <a data-schema-link href="https://github.com/HanniganAirQuality/All-POD-YAMLs/blob/main/YPOD_HeaderLog.yaml">YPOD_HeaderLog.yaml</a>
+          <span data-schema-status>Loading Serial_Calibrate schema...</span>
+        </div>
 
         <label class="control-group" for="timeline-minutes">
           <span>Timeline size (min)</span>
