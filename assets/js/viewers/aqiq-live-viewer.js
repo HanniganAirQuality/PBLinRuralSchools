@@ -1264,6 +1264,8 @@ function renderChartCanvas(canvas, chart, { width, height, scale = 1, theme, upd
   const times = records.map((record) => record.timestamp.getTime());
   const xMin = Math.min(...times);
   const xMax = Math.max(...times);
+  const leftAxisGroup = axisGroups.find((axisGroup) => axisGroup.id === "left") || axisGroups[0];
+  const rightAxisGroup = axisGroups.find((axisGroup) => axisGroup.id === "right");
   const axisRanges = Object.fromEntries(
     axisGroups
       .map((axisGroup) => {
@@ -1282,8 +1284,18 @@ function renderChartCanvas(canvas, chart, { width, height, scale = 1, theme, upd
   );
   const leftRange = axisRanges.left || Object.values(axisRanges)[0];
   const rightRange = axisRanges.right || null;
+  const leftLabel = leftAxisGroup?.unitLabel || "";
+  const rightLabel = rightRange ? rightAxisGroup?.unitLabel || "" : "";
 
-  drawGrid(context, plot, width, height, xMin, xMax, leftRange, theme, { rightRange });
+  if (leftLabel || rightLabel) {
+    plot.top = 24;
+  }
+
+  drawGrid(context, plot, width, height, xMin, xMax, leftRange, theme, {
+    rightRange,
+    leftLabel,
+    rightLabel,
+  });
 
   plottedSeries.forEach((series) => {
     const yRange = axisRanges[series.axis] || leftRange;
@@ -1698,12 +1710,24 @@ function getYRange(values, minZero = false, defaultRange = null) {
   };
 }
 
-function drawGrid(context, plot, width, height, xMin, xMax, yRange, theme, { rightRange = null } = {}) {
+function drawGrid(
+  context,
+  plot,
+  width,
+  height,
+  xMin,
+  xMax,
+  yRange,
+  theme,
+  { rightRange = null, leftLabel = "", rightLabel = "" } = {},
+) {
   context.strokeStyle = theme.grid;
   context.lineWidth = 1;
   context.font = "11px Arial, Helvetica, sans-serif";
   context.fillStyle = theme.text;
   context.textAlign = "left";
+
+  drawAxisUnitLabels(context, plot, width, theme, { leftLabel, rightLabel });
 
   for (let step = 0; step <= 4; step += 1) {
     const ratio = step / 4;
@@ -1733,10 +1757,44 @@ function drawGrid(context, plot, width, height, xMin, xMax, yRange, theme, { rig
     context.stroke();
 
     const time = new Date(xMin + (xMax - xMin) * ratio);
-    context.fillText(formatTime(time), Math.min(x, width - 58), height - 9);
+    drawCenteredXAxisLabel(context, formatTime(time), x, width, height - 9);
   }
 
   context.textAlign = "left";
+}
+
+function drawCenteredXAxisLabel(context, label, x, width, y) {
+  const labelWidth = context.measureText(label).width;
+  const padding = 8;
+  const halfWidth = labelWidth / 2;
+  const centerX = clampNumber(x, padding + halfWidth, width - padding - halfWidth, x);
+
+  context.textAlign = "center";
+  context.fillText(label, centerX, y);
+  context.textAlign = "left";
+}
+
+function drawAxisUnitLabels(context, plot, width, theme, { leftLabel = "", rightLabel = "" } = {}) {
+  if (!leftLabel && !rightLabel) {
+    return;
+  }
+
+  context.save();
+  context.fillStyle = theme.text;
+  context.font = "700 10px Arial, Helvetica, sans-serif";
+  context.textBaseline = "alphabetic";
+
+  if (leftLabel) {
+    context.textAlign = "left";
+    context.fillText(leftLabel, 8, Math.max(10, plot.top - 9));
+  }
+
+  if (rightLabel) {
+    context.textAlign = "right";
+    context.fillText(rightLabel, width - 8, Math.max(10, plot.top - 9));
+  }
+
+  context.restore();
 }
 
 function drawSeries(context, records, series, plot, xMin, xMax, yRange, marker, theme) {
