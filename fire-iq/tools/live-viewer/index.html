@@ -23,9 +23,9 @@
       </div>
 
       <div class="schema-card" aria-live="polite">
-        <span class="schema-label">Layout</span>
-        <strong>Fire-IQ dual stream</strong>
-        <span data-layout-status>DateTime, T, RH, TVOC, F2600, F2602, NA, CO, CO2, PM1, PM2.5, PM10</span>
+        <span class="schema-label">YAML</span>
+        <a data-schema-link href="https://github.com/HanniganAirQuality/All-POD-YAMLs/blob/main/YPOD_HeaderLog.yaml">YPOD_HeaderLog.yaml</a>
+        <span data-schema-status>Loading Serial_Calibrate schema...</span>
       </div>
     </section>
 
@@ -56,6 +56,16 @@
     <details class="advanced-settings">
       <summary>Advanced settings</summary>
       <div class="advanced-grid fire-advanced-grid">
+        <label class="control-group" for="yaml-version">
+          <span>YAML version</span>
+          <select id="yaml-version" data-yaml-version></select>
+        </label>
+
+        <label class="control-group" for="yaml-section">
+          <span>YAML type</span>
+          <select id="yaml-section" data-yaml-section></select>
+        </label>
+
         <label class="control-group" for="timeline-minutes">
           <span>Timeline size (min)</span>
           <input id="timeline-minutes" type="number" min="0.25" max="1440" step="0.25" value="5" data-timeline-minutes>

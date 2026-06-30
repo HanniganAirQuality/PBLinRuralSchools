@@ -1,5 +1,10 @@
 import { showSafariLiveViewerWarning } from "../core/browser-warning.js";
 import { SerialLineReader } from "../core/serial-lines.js";
+import {
+  YPOD_HEADER_LOG_PAGE,
+  getYpodSectionSchema,
+  loadYpodHeaderLogResource,
+} from "../core/ypod-yaml.js";
 
 const DEFAULT_BAUD_RATE = 9600;
 const DEFAULT_TIMELINE_MINUTES = 5;
@@ -17,31 +22,15 @@ const EXPORT_CHART_THEME = {
 };
 
 const POD_KEYS = ["pod1", "pod2"];
-const FIRE_COLUMNS = [
-  { name: "DateTime", label: "DateTime", unit: "timestamp" },
-  { name: "Temperature", label: "Temperature", unit: "deg C" },
-  { name: "Relative_Humidity", label: "Relative Humidity", unit: "% RH" },
-  { name: "TVOC", label: "TVOC", unit: "ppm" },
-  { name: "F2600", label: "F2600", unit: "ADU" },
-  { name: "F2602", label: "F2602", unit: "ADU" },
-  { name: "NA", label: "NA", unit: "" },
-  { name: "CO", label: "CO", unit: "ppm" },
-  { name: "CO2", label: "CO2", unit: "ppm" },
-  { name: "PM1", label: "PM1", unit: "ug/m^3" },
-  { name: "PM25", label: "PM2.5", unit: "ug/m^3" },
-  { name: "PM10", label: "PM10", unit: "ug/m^3" },
-];
-const FIRE_VALUE_INDEXES = {
-  temperature: 0,
-  humidity: 1,
-  tvoc: 2,
-  vocLight: 3,
-  vocHeavy: 4,
-  co: 6,
-  co2: 7,
-  pm1: 8,
-  pm25: 9,
-  pm10: 10,
+const POD_COLORS = {
+  pod1: "#228833",
+  pod2: "#1965b0",
+};
+const FIELD_ALIASES = {
+  timestamp: ["DateTime", "Timestamp", "Time"],
+  co: ["CO", "Calibrated_CO"],
+  co2: ["CO2", "ELT_CO2", "CO_2"],
+  pm25: ["PM25_ENV", "PM2_5", "PM25", "PM2.5"],
 };
 
 const CHARTS = {
@@ -52,8 +41,8 @@ const CHARTS = {
     unit: "ppm",
     minZero: true,
     series: [
-      { podKey: "pod1", key: "co", color: "#228833" },
-      { podKey: "pod2", key: "co", color: "#4eb265" },
+      { podKey: "pod1", key: "co", color: POD_COLORS.pod1 },
+      { podKey: "pod2", key: "co", color: POD_COLORS.pod2 },
     ],
   },
   co2: {
@@ -63,8 +52,8 @@ const CHARTS = {
     unit: "ppm",
     minZero: true,
     series: [
-      { podKey: "pod1", key: "co2", color: "#ddaa33" },
-      { podKey: "pod2", key: "co2", color: "#f6c141" },
+      { podKey: "pod1", key: "co2", color: POD_COLORS.pod1 },
+      { podKey: "pod2", key: "co2", color: POD_COLORS.pod2 },
     ],
   },
   pm25: {
@@ -74,14 +63,16 @@ const CHARTS = {
     unit: "ug/m^3",
     minZero: true,
     series: [
-      { podKey: "pod1", key: "pm25", color: "#004488" },
-      { podKey: "pod2", key: "pm25", color: "#1965b0" },
+      { podKey: "pod1", key: "pm25", color: POD_COLORS.pod1 },
+      { podKey: "pod2", key: "pm25", color: POD_COLORS.pod2 },
     ],
   },
 };
 
 const app = document.querySelector("[data-fire-iq-live-viewer]");
 const state = {
+  yamlResource: null,
+  schema: null,
   displayWindowMs: DEFAULT_TIMELINE_MINUTES * 60 * 1000,
   renderQueued: false,
   pods: {
@@ -108,8 +99,9 @@ function makePodState(label) {
   };
 }
 
-function init() {
+async function init() {
   bindControls();
+  await loadYamlSettings();
   renderDebugValues("pod1");
   renderDebugValues("pod2");
   updateLegends();
@@ -142,6 +134,8 @@ function bindControls() {
   });
   query("[data-reset]").addEventListener("click", resetData);
   query("[data-export-png]").addEventListener("click", exportGraphPng);
+  query("[data-yaml-version]").addEventListener("change", handleVersionChange);
+  query("[data-yaml-section]").addEventListener("change", applySelectedSchema);
   query("[data-timeline-minutes]").addEventListener("input", handleTimelineSizeChange);
   app.querySelectorAll("[data-plot-toggle]").forEach((toggle) => {
     toggle.addEventListener("change", handlePlotToggle);
@@ -149,6 +143,82 @@ function bindControls() {
   window.addEventListener("resize", queueRender);
   const colorScheme = window.matchMedia?.("(prefers-color-scheme: dark)");
   colorScheme?.addEventListener?.("change", queueRender);
+}
+
+async function loadYamlSettings() {
+  query("[data-schema-status]").textContent = "Loading Serial_Calibrate schema...";
+  state.yamlResource = await loadYpodHeaderLogResource();
+  populateVersionSelect();
+  populateSectionSelect();
+  applySelectedSchema();
+}
+
+function populateVersionSelect() {
+  const select = query("[data-yaml-version]");
+  const versions = state.yamlResource?.index || [];
+  select.innerHTML = "";
+
+  versions.forEach((item) => {
+    const option = document.createElement("option");
+    option.value = item.version;
+    option.textContent = item.version;
+    select.append(option);
+  });
+}
+
+function populateSectionSelect() {
+  const version = query("[data-yaml-version]").value;
+  const sections = state.yamlResource?.index.find((item) => item.version === version)?.sections || [];
+  const select = query("[data-yaml-section]");
+  const previous = select.value;
+  select.innerHTML = "";
+
+  sections.forEach((section) => {
+    const option = document.createElement("option");
+    option.value = section;
+    option.textContent = section;
+    select.append(option);
+  });
+
+  if (sections.includes(previous)) {
+    select.value = previous;
+  } else if (sections.includes("Serial_Calibrate")) {
+    select.value = "Serial_Calibrate";
+  }
+}
+
+function handleVersionChange() {
+  populateSectionSelect();
+  applySelectedSchema();
+}
+
+function applySelectedSchema() {
+  const version = query("[data-yaml-version]").value;
+  const section = query("[data-yaml-section]").value;
+
+  try {
+    const schema = getYpodSectionSchema(state.yamlResource, version, section);
+    setActiveSchema(schema, { reset: true });
+  } catch (error) {
+    query("[data-schema-status]").textContent = error.message || "Unable to load schema";
+  }
+}
+
+function setActiveSchema(schema, { reset = false } = {}) {
+  const schemaLink = query("[data-schema-link]");
+  const schemaStatus = query("[data-schema-status]");
+  state.schema = schema;
+  schemaLink.href = schema.htmlUrl || YPOD_HEADER_LOG_PAGE;
+
+  const suffix = schema.isFallback ? "fallback" : `${schema.columns.length} columns`;
+  schemaStatus.textContent = `${schema.version} ${schema.section}, ${suffix}`;
+  updateChartHeadings();
+  renderDebugValues("pod1");
+  renderDebugValues("pod2");
+
+  if (reset) {
+    resetData();
+  }
 }
 
 async function connectPod(podKey) {
@@ -159,6 +229,10 @@ async function connectPod(podKey) {
   }
 
   try {
+    if (!state.schema) {
+      await loadYamlSettings();
+    }
+
     pod.serial = new SerialLineReader({
       baudRate: DEFAULT_BAUD_RATE,
       onLine: (line) => handleSerialLine(podKey, line),
@@ -251,7 +325,7 @@ function handleSerialLine(podKey, line) {
     return;
   }
 
-  const record = mapFireIqValues(values, line);
+  const record = mapSerialValues(values, line);
 
   if (!record) {
     setPodStatus(podKey, "Unexpected Fire-IQ row");
@@ -281,58 +355,144 @@ function markReadSuccessful(podKey) {
   setPodStatus(podKey, "Connected");
 }
 
-function mapFireIqValues(values, rawLine) {
-  const normalizedValues = normalizeFireValues(values);
+function mapSerialValues(values, rawLine) {
+  let schema = state.schema;
+
+  if (!schema?.columns?.length || values.length === 0) {
+    return null;
+  }
+
+  let normalizedValues = normalizeValuesForSchema(values, schema.columns);
+
+  if (!normalizedValues) {
+    const compatibleSchema = findCompatibleSchemaForValues(values);
+
+    if (compatibleSchema) {
+      schema = compatibleSchema;
+      selectSchemaControls(schema);
+      setActiveSchema(schema, { reset: false });
+      normalizedValues = normalizeValuesForSchema(values, schema.columns);
+    }
+  }
 
   if (!normalizedValues) {
     return null;
   }
 
-  const podTimestamp = parseTimestamp(normalizedValues[0]);
-
-  if (!podTimestamp) {
-    return null;
-  }
-
-  const nums = normalizedValues.slice(1).map((value) => Number(value));
   const fields = {};
-  FIRE_COLUMNS.forEach((column, index) => {
+  schema.columns.forEach((column, index) => {
     fields[column.name] = normalizedValues[index] ?? "";
   });
 
+  const timestampRaw = getField(fields, FIELD_ALIASES.timestamp) || normalizedValues[0];
+  const timestamp = parseTimestamp(timestampRaw);
+
+  if (!timestamp) {
+    return null;
+  }
+
   return {
-    timestamp: new Date(),
-    podTimestamp,
+    timestamp,
     rawLine,
     fields,
     values: {
-      temperature: numberAt(nums, FIRE_VALUE_INDEXES.temperature),
-      humidity: numberAt(nums, FIRE_VALUE_INDEXES.humidity),
-      tvoc: numberAt(nums, FIRE_VALUE_INDEXES.tvoc),
-      vocLight: numberAt(nums, FIRE_VALUE_INDEXES.vocLight),
-      vocHeavy: numberAt(nums, FIRE_VALUE_INDEXES.vocHeavy),
-      co: numberAt(nums, FIRE_VALUE_INDEXES.co),
-      co2: numberAt(nums, FIRE_VALUE_INDEXES.co2),
-      pm1: numberAt(nums, FIRE_VALUE_INDEXES.pm1),
-      pm25: numberAt(nums, FIRE_VALUE_INDEXES.pm25),
-      pm10: numberAt(nums, FIRE_VALUE_INDEXES.pm10),
+      co: numberField(fields, FIELD_ALIASES.co),
+      co2: numberField(fields, FIELD_ALIASES.co2),
+      pm25: numberField(fields, FIELD_ALIASES.pm25),
     },
   };
 }
 
-function normalizeFireValues(values) {
-  const normalized = values[values.length - 1] === "" ? values.slice(0, -1) : values;
-
-  if (normalized.length < FIRE_COLUMNS.length) {
-    return null;
+function normalizeValuesForSchema(values, columns) {
+  if (values.length === columns.length) {
+    return values;
   }
 
-  return normalized.slice(0, FIRE_COLUMNS.length);
+  if (values.length === columns.length + 1 && values[values.length - 1] === "") {
+    return values.slice(0, -1);
+  }
+
+  return null;
 }
 
-function numberAt(values, index) {
-  const value = Number(values[index]);
+function findCompatibleSchemaForValues(values) {
+  const versions = state.yamlResource?.index || [];
+
+  for (const item of versions) {
+    for (const section of item.sections || []) {
+      try {
+        const schema = getYpodSectionSchema(state.yamlResource, item.version, section);
+
+        if (
+          normalizeValuesForSchema(values, schema.columns) &&
+          hasRequiredChartFields(schema)
+        ) {
+          return schema;
+        }
+      } catch {
+      }
+    }
+  }
+
+  return null;
+}
+
+function hasRequiredChartFields(schema) {
+  return ["co", "co2", "pm25"].every((key) =>
+    Boolean(resolveColumnForField(key, schema.columns)),
+  );
+}
+
+function selectSchemaControls(schema) {
+  const versionSelect = query("[data-yaml-version]");
+  const sectionSelect = query("[data-yaml-section]");
+
+  versionSelect.value = schema.version;
+  populateSectionSelect();
+  sectionSelect.value = schema.section;
+}
+
+function resolveColumnForField(fieldKey, columns = state.schema?.columns || []) {
+  const aliases = FIELD_ALIASES[fieldKey] || [];
+  const normalizedAliases = aliases.map(normalizeFieldName);
+
+  return columns.find((column) =>
+    normalizedAliases.includes(normalizeFieldName(column.name)),
+  ) || null;
+}
+
+function getField(fields, aliases) {
+  for (const alias of aliases) {
+    if (fields[alias] !== undefined && fields[alias] !== "") {
+      return fields[alias];
+    }
+  }
+
+  const normalizedAliases = aliases.map(normalizeFieldName);
+  const match = Object.entries(fields).find(([name, value]) =>
+    value !== "" && normalizedAliases.includes(normalizeFieldName(name)),
+  );
+  return match?.[1] || "";
+}
+
+function numberField(fields, aliases) {
+  const value = Number(getField(fields, aliases));
   return Number.isFinite(value) ? value : null;
+}
+
+function normalizeFieldName(name) {
+  return String(name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function formatFieldLabel(fieldName) {
+  return fieldName
+    .replace(/^Fig2600_/, "")
+    .replace(/^Fig2602_/, "")
+    .replace(/_/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\bPM25\b/g, "PM2.5")
+    .replace(/\bCO2\b/g, "CO2")
+    .replace(/\bVOC\b/g, "VOC");
 }
 
 function parseCsvLine(line) {
@@ -428,9 +588,9 @@ function updateReadout(podKey, record) {
   query(`[data-last-time="${podKey}"]`).textContent = formatTime(record.timestamp);
   renderDebugValues(podKey, record);
 
-  setMetric(`${podKey}-co`, record.values.co, "ppm");
-  setMetric(`${podKey}-co2`, record.values.co2, "ppm");
-  setMetric(`${podKey}-pm25`, record.values.pm25, "ug/m^3");
+  setMetric(`${podKey}-co`, record.values.co, getFieldUnit("co", "ppm"));
+  setMetric(`${podKey}-co2`, record.values.co2, getFieldUnit("co2", "ppm"));
+  setMetric(`${podKey}-pm25`, record.values.pm25, getFieldUnit("pm25", "ug/m^3"));
 }
 
 function updateRawDebugReadout(podKey, line, values) {
@@ -440,16 +600,17 @@ function updateRawDebugReadout(podKey, line, values) {
 
 function renderDebugValues(podKey, record = null, values = null) {
   const target = query(`[data-debug-values="${podKey}"]`);
+  const columns = state.schema?.columns || [];
   const fragment = document.createDocumentFragment();
 
-  FIRE_COLUMNS.forEach((column, index) => {
+  columns.forEach((column, index) => {
     const item = document.createElement("div");
     const name = document.createElement("span");
     const value = document.createElement("code");
     const rawValue = record?.fields?.[column.name] ?? values?.[index];
 
     item.className = "debug-value";
-    name.textContent = column.label;
+    name.textContent = formatFieldLabel(column.name);
     value.textContent = rawValue === undefined || rawValue === "" ? "--" : rawValue;
 
     item.append(name, value);
@@ -462,6 +623,33 @@ function renderDebugValues(podKey, record = null, values = null) {
 function setMetric(name, value, unit) {
   const target = query(`[data-metric="${name}"]`);
   target.textContent = Number.isFinite(value) ? `${formatNumber(value)} ${unit}`.trim() : "--";
+}
+
+function updateChartHeadings() {
+  Object.entries(CHARTS).forEach(([chartKey, chart]) => {
+    const title = query(`[data-chart-card="${chartKey}"] h2`);
+
+    if (!title) {
+      return;
+    }
+
+    const unit = getChartUnit(chart);
+    title.replaceChildren(document.createTextNode(chart.title));
+
+    if (unit) {
+      const unitNode = document.createElement("span");
+      unitNode.textContent = ` [${unit}]`;
+      title.append(unitNode);
+    }
+  });
+}
+
+function getChartUnit(chart) {
+  return getFieldUnit(chart.stats, chart.unit || "");
+}
+
+function getFieldUnit(fieldKey, fallback = "") {
+  return resolveColumnForField(fieldKey)?.unit || fallback;
 }
 
 function queueRender() {
@@ -511,6 +699,7 @@ function renderChart(card, chart) {
 
 function renderChartCanvas(canvas, chart, { width, height, scale = 1, theme, updateStats = false }) {
   const context = canvas.getContext("2d");
+  const chartUnit = getChartUnit(chart);
 
   canvas.width = Math.floor(width * scale);
   canvas.height = Math.floor(height * scale);
@@ -538,7 +727,7 @@ function renderChartCanvas(canvas, chart, { width, height, scale = 1, theme, upd
   const plot = {
     left: 54,
     right: width - 14,
-    top: chart.unit ? 24 : 12,
+    top: chartUnit ? 24 : 12,
     bottom: height - 28,
   };
   const times = visibleRecords.map((record) => record.timestamp.getTime());
@@ -553,7 +742,7 @@ function renderChartCanvas(canvas, chart, { width, height, scale = 1, theme, upd
   const yRange = getYRange(seriesValues, chart.minZero);
 
   drawGrid(context, plot, width, height, xMin, xMax, yRange, theme, {
-    leftLabel: chart.unit,
+    leftLabel: chartUnit,
   });
 
   chart.series.forEach((series) => {
@@ -790,7 +979,7 @@ function exportGraphPng() {
 }
 
 function drawExportHeader(context, width, padding) {
-  const layoutStatus = query("[data-layout-status]").textContent;
+  const schemaStatus = query("[data-schema-status]").textContent;
   context.fillStyle = "#17202a";
   context.font = "700 22px Arial, Helvetica, sans-serif";
   context.fillText("Fire-IQ Dual-POD Live Visualization", padding, 34);
@@ -798,7 +987,7 @@ function drawExportHeader(context, width, padding) {
   context.fillStyle = "#5c6672";
   context.font = "13px Arial, Helvetica, sans-serif";
   context.fillText(`Exported ${new Date().toLocaleString()}`, padding, 58);
-  context.fillText(layoutStatus, padding, 76);
+  context.fillText(schemaStatus, padding, 76);
 
   context.strokeStyle = "#d9dee6";
   context.beginPath();
