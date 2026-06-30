@@ -479,6 +479,31 @@ input {
   gap: 0.65rem;
 }
 
+.fire-pod-controls {
+  align-items: stretch;
+}
+
+.pod-control-card {
+  min-width: min(100%, 31rem);
+  flex: 1 1 31rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.55rem;
+  display: grid;
+  grid-template-columns: minmax(9rem, 1fr) auto auto minmax(11rem, 1fr);
+  align-items: end;
+  gap: 0.55rem;
+  background: var(--surface-panel);
+}
+
+.pod-control-card .connection-status {
+  width: 100%;
+  margin-left: 0;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+}
+
 .control-group {
   display: grid;
   gap: 0.25rem;
@@ -555,6 +580,10 @@ input {
   gap: 0.75rem;
 }
 
+.fire-advanced-grid {
+  grid-template-columns: minmax(10rem, max-content);
+}
+
 .plot-settings {
   padding: 0.65rem;
   display: grid;
@@ -613,6 +642,12 @@ input {
   grid-auto-rows: minmax(7rem, 1fr);
   align-content: stretch;
   gap: 0.5rem;
+}
+
+.fire-chart-grid {
+  height: calc(100dvh - 15rem);
+  grid-template-columns: 1fr;
+  grid-template-rows: repeat(3, minmax(8.5rem, 1fr));
 }
 
 .chart-card {
@@ -786,6 +821,11 @@ input {
   gap: 0.75rem;
 }
 
+.fire-serial-readout {
+  border-top: 1px solid var(--line);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .export-actions {
   display: flex;
   justify-content: flex-end;
@@ -805,6 +845,11 @@ input {
 .raw-line-panel,
 .debug-panel {
   grid-column: 1 / -1;
+}
+
+.fire-serial-readout .raw-line-panel,
+.fire-serial-readout .debug-panel {
+  grid-column: span 2;
 }
 
 .serial-readout strong,
@@ -879,6 +924,10 @@ input {
     grid-auto-rows: auto;
   }
 
+  .fire-chart-grid {
+    grid-template-rows: none;
+  }
+
   .chart-card {
     min-height: 12rem;
   }
@@ -903,6 +952,11 @@ input {
 
   .serial-readout {
     grid-template-columns: 1fr;
+  }
+
+  .fire-serial-readout .raw-line-panel,
+  .fire-serial-readout .debug-panel {
+    grid-column: 1 / -1;
   }
 }
 
@@ -950,6 +1004,10 @@ input {
   .connection-status,
   .control-group {
     width: 100%;
+  }
+
+  .pod-control-card {
+    grid-template-columns: 1fr;
   }
 
   .metric-strip {
