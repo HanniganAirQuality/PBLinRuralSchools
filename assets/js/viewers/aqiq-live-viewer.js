@@ -410,17 +410,22 @@ function makeColumnChartCard(chart) {
 }
 
 function handleSerialLine(line) {
-  if (state.skipNextSerialLine) {
-    state.skipNextSerialLine = false;
-    setStatus("Skipped initial serial fragment");
-    return;
-  }
-
   const values = parseCsvLine(line);
   updateRawDebugReadout(line, values);
 
   if (isHeaderRow(values)) {
     setStatus("Header received");
+    return;
+  }
+
+  if (state.skipNextSerialLine) {
+    state.skipNextSerialLine = false;
+
+    if (!hasTimestampFirst(values)) {
+      setStatus(line);
+      return;
+    }
+
     return;
   }
 
@@ -432,7 +437,7 @@ function handleSerialLine(line) {
   const record = mapSerialValues(values, line);
 
   if (!record) {
-    setStatus("Skipped out-of-sync row");
+    setStatus(line);
     return;
   }
 
