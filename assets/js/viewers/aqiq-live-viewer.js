@@ -10,6 +10,16 @@ const DEFAULT_TIMELINE_MINUTES = 5;
 const MIN_TIMELINE_MINUTES = 0.25;
 const MAX_TIMELINE_MINUTES = 1440;
 const MAX_RECORDS = 2400;
+const COLUMN_CHART_COLORS = [
+  "#0f766e",
+  "#dc2626",
+  "#7c3aed",
+  "#0891b2",
+  "#ca8a04",
+  "#16a34a",
+  "#db2777",
+  "#4f46e5",
+];
 
 const FIELD_ALIASES = {
   timestamp: ["DateTime", "Timestamp", "Time"],
@@ -19,8 +29,7 @@ const FIELD_ALIASES = {
   pm25: ["PM25_ENV", "PM2_5", "PM25", "PM2.5"],
   vocLight: ["Fig2600_LightVOC", "LightVOC", "lightVOC"],
   vocHeavy: ["Fig2602_HeavyVOC", "HeavyVOC", "heavyVOC"],
-  co: ["CO_ch1", "CO_ISB", "CO", "CarbonMonoxide"],
-  coAux: ["CO_ch2"],
+  co: ["Calibrated_CO"],
 };
 
 const CHARTS = {
@@ -52,10 +61,7 @@ const CHARTS = {
   co: {
     canvas: "chart-co",
     stats: "co",
-    series: [
-      { key: "co", color: "#7da9ff", preferredField: "CO_ch1" },
-      { key: "coAux", color: "#4f46e5", preferredField: "CO_ch2" },
-    ],
+    series: [{ key: "co", color: "#7da9ff" }],
   },
   pm25: {
     canvas: "chart-pm25",
@@ -74,6 +80,8 @@ const state = {
   skipNextSerialLine: false,
   renderQueued: false,
   displayWindowMs: DEFAULT_TIMELINE_MINUTES * 60 * 1000,
+  statusMessage: "",
+  statusRepeatCount: 0,
 };
 
 if (app) {
@@ -106,6 +114,7 @@ function bindControls() {
   app.querySelectorAll("[data-plot-toggle]").forEach((toggle) => {
     toggle.addEventListener("change", handlePlotToggle);
   });
+  query("[data-column-toggles]").addEventListener("change", handleColumnPlotToggle);
   window.addEventListener("resize", queueRender);
 }
 
@@ -180,11 +189,41 @@ function applySelectedSchema() {
 
     const suffix = schema.isFallback ? "fallback" : `${schema.columns.length} columns`;
     schemaStatus.textContent = `${schema.version} ${schema.section}, ${suffix}`;
+    renderColumnToggles();
     updateLegends();
     resetData();
   } catch (error) {
     schemaStatus.textContent = error.message || "Unable to load schema";
   }
+}
+
+function renderColumnToggles() {
+  const target = query("[data-column-toggles]");
+  const checkedColumns = new Set(
+    [...target.querySelectorAll("[data-column-plot-toggle]:checked")]
+      .map((toggle) => toggle.dataset.columnName),
+  );
+  const fragment = document.createDocumentFragment();
+
+  state.schema?.columns
+    ?.map((column, index) => ({ column, index }))
+    .filter((item) => !isTimestampColumn(item.column))
+    .forEach(({ column, index }) => {
+      const label = document.createElement("label");
+      const input = document.createElement("input");
+
+      input.type = "checkbox";
+      input.value = String(index);
+      input.dataset.columnPlotToggle = "";
+      input.dataset.columnName = column.name;
+      input.checked = checkedColumns.has(column.name);
+
+      label.append(input, document.createTextNode(formatFieldLabel(column.name)));
+      fragment.append(label);
+    });
+
+  target.replaceChildren(fragment);
+  syncColumnChartCards();
 }
 
 function updateLegends() {
@@ -208,11 +247,17 @@ function updateLegends() {
 }
 
 function resolveColumnForSeries(seriesKey) {
+  const directSeries = Object.values(getAllCharts())
+    .flatMap((chart) => chart.series)
+    .find((series) => series.key === seriesKey);
+
+  if (Number.isInteger(directSeries?.columnIndex)) {
+    return state.schema?.columns?.[directSeries.columnIndex] || null;
+  }
+
   const aliases = FIELD_ALIASES[seriesKey] || [];
   const columns = state.schema?.columns || [];
-  const preferredField = Object.values(CHARTS)
-    .flatMap((chart) => chart.series)
-    .find((series) => series.key === seriesKey)?.preferredField;
+  const preferredField = directSeries?.preferredField;
 
   if (preferredField) {
     const preferredColumn = columns.find((column) => column.name === preferredField);
@@ -256,7 +301,8 @@ async function connectSerial() {
       baudRate: DEFAULT_BAUD_RATE,
       onLine: handleSerialLine,
       onStatus: setStatus,
-      onError: (error) => setStatus(error.message || "Serial read error"),
+      onError: handleSerialError,
+      onDisconnect: handleSerialDisconnect,
     });
 
     setButtons({ connecting: true });
@@ -266,12 +312,23 @@ async function connectSerial() {
     setButtons({ connected: true });
   } catch (error) {
     setButtons({ connected: false });
+    state.serial = null;
     setStatus(error.message || "Connection failed");
   }
 }
 
 async function disconnectSerial() {
   await state.serial?.disconnect();
+  state.serial = null;
+  state.skipNextSerialLine = false;
+  setButtons({ connected: false });
+}
+
+function handleSerialError(error) {
+  setStatus(error.message || "Serial read error");
+}
+
+function handleSerialDisconnect() {
   state.serial = null;
   state.skipNextSerialLine = false;
   setButtons({ connected: false });
@@ -288,6 +345,66 @@ function handlePlotToggle() {
   });
 
   queueRender();
+}
+
+function handleColumnPlotToggle(event) {
+  if (!event.target.matches("[data-column-plot-toggle]")) {
+    return;
+  }
+
+  syncColumnChartCards();
+  queueRender();
+}
+
+function syncColumnChartCards() {
+  const grid = query(".chart-grid");
+  const selectedCharts = getSelectedColumnCharts();
+  const selectedKeys = new Set(selectedCharts.map((chart) => chart.key));
+
+  app.querySelectorAll("[data-dynamic-chart-card]").forEach((card) => {
+    if (!selectedKeys.has(card.dataset.chartCard)) {
+      card.remove();
+    }
+  });
+
+  selectedCharts.forEach((chart) => {
+    if (app.querySelector(`[data-chart-card="${chart.key}"]`)) {
+      return;
+    }
+
+    grid.append(makeColumnChartCard(chart));
+  });
+}
+
+function makeColumnChartCard(chart) {
+  const card = document.createElement("article");
+  const heading = document.createElement("div");
+  const titleWrap = document.createElement("div");
+  const title = document.createElement("h2");
+  const unit = document.createElement("span");
+  const stats = document.createElement("span");
+  const canvas = document.createElement("canvas");
+
+  card.className = "chart-card";
+  card.dataset.chartCard = chart.key;
+  card.dataset.dynamicChartCard = "";
+  heading.className = "chart-heading";
+
+  title.append(document.createTextNode(chart.title));
+  if (chart.unit) {
+    unit.textContent = ` [${chart.unit}]`;
+    title.append(unit);
+  }
+
+  stats.dataset.chartStats = chart.stats;
+  stats.textContent = "--";
+  canvas.id = chart.canvas;
+  canvas.dataset.chart = chart.key;
+
+  titleWrap.append(title);
+  heading.append(titleWrap, stats);
+  card.append(heading, canvas);
+  return card;
 }
 
 function handleSerialLine(line) {
@@ -346,6 +463,15 @@ function mapSerialValues(values, rawLine) {
     return null;
   }
 
+  const numericValues = {};
+  schema.columns.forEach((column, index) => {
+    const value = Number(normalizedValues[index]);
+
+    if (Number.isFinite(value)) {
+      numericValues[columnValueKey(index)] = value;
+    }
+  });
+
   return {
     timestamp,
     rawLine,
@@ -358,7 +484,7 @@ function mapSerialValues(values, rawLine) {
       vocLight: numberField(fields, FIELD_ALIASES.vocLight),
       vocHeavy: numberField(fields, FIELD_ALIASES.vocHeavy),
       co: numberField(fields, FIELD_ALIASES.co),
-      coAux: numberField(fields, FIELD_ALIASES.coAux),
+      ...numericValues,
     },
   };
 }
@@ -445,7 +571,8 @@ function resetData() {
   query("[data-row-count]").textContent = "0";
   query("[data-last-time]").textContent = "--";
   query("[data-latest-line]").textContent = "--";
-  Object.values(CHARTS).forEach((chart) => {
+  renderDebugValues();
+  Object.values(getAllCharts()).forEach((chart) => {
     query(`[data-chart-stats="${chart.stats}"]`).textContent = "--";
   });
   app.querySelectorAll("[data-metric]").forEach((metric) => {
@@ -458,13 +585,36 @@ function updateReadout(record, line) {
   query("[data-row-count]").textContent = String(state.records.length);
   query("[data-last-time]").textContent = formatTime(record.timestamp);
   query("[data-latest-line]").textContent = line;
+  renderDebugValues(record);
 
   setMetric("temperature", record.values.temperature, "deg C");
   setMetric("humidity", record.values.humidity, "%");
   setMetric("co2", record.values.co2, "ppm");
   setMetric("pm25", record.values.pm25, "ug/m^3");
   setMetric("voc", firstFinite(record.values.vocLight, record.values.vocHeavy), "");
-  setMetric("co", firstFinite(record.values.co, record.values.coAux), "ADU");
+  setMetric("co", record.values.co, "ppm");
+}
+
+function renderDebugValues(record = null) {
+  const target = query("[data-debug-values]");
+  const columns = state.schema?.columns || [];
+  const fragment = document.createDocumentFragment();
+
+  columns.forEach((column) => {
+    const item = document.createElement("div");
+    const name = document.createElement("span");
+    const value = document.createElement("code");
+    const rawValue = record?.fields?.[column.name];
+
+    item.className = "debug-value";
+    name.textContent = formatFieldLabel(column.name);
+    value.textContent = rawValue === undefined || rawValue === "" ? "--" : rawValue;
+
+    item.append(name, value);
+    fragment.append(item);
+  });
+
+  target.replaceChildren(fragment);
 }
 
 function setMetric(name, value, unit) {
@@ -485,7 +635,7 @@ function queueRender() {
 }
 
 function renderAll() {
-  Object.entries(CHARTS).forEach(([key, chart]) => {
+  Object.entries(getAllCharts()).forEach(([key, chart]) => {
     const card = app.querySelector(`[data-chart-card="${key}"]`);
 
     if (!card?.hidden) {
@@ -699,6 +849,53 @@ function getDefaultYRange(chart) {
   };
 }
 
+function getAllCharts() {
+  return {
+    ...CHARTS,
+    ...Object.fromEntries(getSelectedColumnCharts().map((chart) => [chart.key, chart])),
+  };
+}
+
+function getSelectedColumnCharts() {
+  const columns = state.schema?.columns || [];
+
+  return [...app.querySelectorAll("[data-column-plot-toggle]:checked")]
+    .map((toggle) => {
+      const columnIndex = Number(toggle.value);
+      const column = columns[columnIndex];
+
+      if (!column) {
+        return null;
+      }
+
+      return makeColumnChart(column, columnIndex);
+    })
+    .filter(Boolean);
+}
+
+function makeColumnChart(column, index) {
+  const key = `column-${index}`;
+
+  return {
+    key,
+    canvas: `chart-${key}`,
+    stats: key,
+    title: formatFieldLabel(column.name),
+    unit: column.unit,
+    series: [
+      {
+        key: columnValueKey(index),
+        color: COLUMN_CHART_COLORS[index % COLUMN_CHART_COLORS.length],
+        columnIndex: index,
+      },
+    ],
+  };
+}
+
+function columnValueKey(index) {
+  return `column:${index}`;
+}
+
 function getYRange(values, minZero = false, defaultRange = null) {
   let min = Math.min(...values);
   let max = Math.max(...values);
@@ -843,6 +1040,11 @@ function isValidAxisRange(range) {
     range[0] < range[1];
 }
 
+function isTimestampColumn(column) {
+  const aliases = FIELD_ALIASES.timestamp.map((alias) => alias.toLowerCase());
+  return column.unit === "timestamp" || aliases.includes(column.name.toLowerCase());
+}
+
 function clampNumber(value, min, max, fallback) {
   if (!Number.isFinite(value)) {
     return fallback;
@@ -886,7 +1088,15 @@ function setButtons({ connecting = false, connected = false }) {
 }
 
 function setStatus(message) {
-  query("[data-connection-status]").textContent = message;
+  if (message === state.statusMessage) {
+    state.statusRepeatCount += 1;
+  } else {
+    state.statusMessage = message;
+    state.statusRepeatCount = 1;
+  }
+
+  const suffix = state.statusRepeatCount > 1 ? ` (x${state.statusRepeatCount})` : "";
+  query("[data-connection-status]").textContent = `${message}${suffix}`;
 }
 
 function query(selector) {

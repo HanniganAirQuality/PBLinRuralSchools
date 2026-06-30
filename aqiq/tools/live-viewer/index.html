@@ -64,20 +64,29 @@
           <label><input type="checkbox" data-plot-toggle value="co" checked> CO</label>
           <label><input type="checkbox" data-plot-toggle value="pm25" checked> PM2.5</label>
         </fieldset>
+
+        <fieldset class="plot-toggles column-toggles">
+          <legend>Columns</legend>
+          <div data-column-toggles></div>
+        </fieldset>
       </div>
 
       <section class="serial-readout" aria-label="Serial readout">
-        <div>
+        <div class="serial-panel">
           <span>Rows</span>
           <strong data-row-count>0</strong>
         </div>
-        <div>
+        <div class="serial-panel">
           <span>Last timestamp</span>
           <strong data-last-time>--</strong>
         </div>
-        <div>
-          <span>Latest row</span>
+        <details class="serial-panel raw-line-panel">
+          <summary>Latest row</summary>
           <code data-latest-line>--</code>
+        </details>
+        <div class="serial-panel debug-panel">
+          <span>Debug values</span>
+          <div class="debug-value-grid" data-debug-values></div>
         </div>
       </section>
     </details>
@@ -154,7 +163,7 @@
       <article class="chart-card" data-chart-card="co">
         <div class="chart-heading">
           <div>
-            <h2>Carbon Monoxide <span>[ADU]</span></h2>
+            <h2>Carbon Monoxide <span>[ppm]</span></h2>
           </div>
           <span data-chart-stats="co">--</span>
         </div>

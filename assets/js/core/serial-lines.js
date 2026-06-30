@@ -1,9 +1,10 @@
 export class SerialLineReader {
-  constructor({ baudRate, onLine, onStatus, onError }) {
+  constructor({ baudRate, onLine, onStatus, onError, onDisconnect }) {
     this.baudRate = baudRate;
     this.onLine = onLine;
     this.onStatus = onStatus;
     this.onError = onError;
+    this.onDisconnect = onDisconnect;
     this.port = null;
     this.reader = null;
     this.keepReading = false;
@@ -35,7 +36,11 @@ export class SerialLineReader {
 
   async disconnect() {
     this.keepReading = false;
+    await this.closePort();
+    this.onStatus?.("Disconnected");
+  }
 
+  async closePort() {
     if (this.reader) {
       await this.reader.cancel().catch(() => {});
       this.reader.releaseLock();
@@ -46,13 +51,12 @@ export class SerialLineReader {
       await this.port.close().catch(() => {});
       this.port = null;
     }
-
-    this.onStatus?.("Disconnected");
   }
 
   async readLoop() {
     const decoder = new TextDecoder();
     let buffer = "";
+    let connectionLost = false;
 
     while (this.port?.readable && this.keepReading) {
       this.reader = this.port.readable.getReader();
@@ -62,6 +66,8 @@ export class SerialLineReader {
           const { value, done } = await this.reader.read();
 
           if (done) {
+            connectionLost = this.keepReading;
+            this.keepReading = false;
             break;
           }
 
@@ -76,12 +82,25 @@ export class SerialLineReader {
         }
       } catch (error) {
         if (this.keepReading) {
+          connectionLost = true;
+          this.keepReading = false;
           this.onError?.(error);
         }
       } finally {
         this.reader?.releaseLock();
         this.reader = null;
       }
+    }
+
+    if (!connectionLost && this.keepReading) {
+      connectionLost = true;
+    }
+
+    if (connectionLost) {
+      this.keepReading = false;
+      await this.closePort();
+      this.onStatus?.("Serial connection lost");
+      this.onDisconnect?.();
     }
   }
 }
