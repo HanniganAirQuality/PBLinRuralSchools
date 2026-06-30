@@ -11,6 +11,8 @@ const DEFAULT_TIMELINE_MINUTES = 5;
 const MIN_TIMELINE_MINUTES = 0.25;
 const MAX_TIMELINE_MINUTES = 1440;
 const MAX_RECORDS = 2400;
+const MIN_CHART_WIDTH = 220;
+const MIN_CHART_HEIGHT = 88;
 const COLUMN_CHART_COLORS = [
   "#0f766e",
   "#dc2626",
@@ -26,6 +28,7 @@ const EXPORT_CHART_THEME = {
   grid: "#d9dee6",
   text: "#5c6672",
   emptyText: "#798391",
+  invertSeries: false,
 };
 
 const FIELD_ALIASES = {
@@ -287,6 +290,7 @@ function makeLegendItem(color, fieldName) {
   const item = document.createElement("span");
   const swatch = document.createElement("i");
   swatch.style.setProperty("--swatch", color);
+  swatch.style.setProperty("--swatch-dark", invertHexColor(color));
   item.append(swatch, document.createTextNode(formatFieldLabel(fieldName)));
   return item;
 }
@@ -694,8 +698,8 @@ function renderChart(chart) {
   const rect = canvas.getBoundingClientRect();
 
   renderChartCanvas(canvas, chart, {
-    width: Math.max(260, rect.width),
-    height: Math.max(130, rect.height),
+    width: Math.max(MIN_CHART_WIDTH, rect.width),
+    height: Math.max(MIN_CHART_HEIGHT, rect.height),
     scale: window.devicePixelRatio || 1,
     theme: getLiveChartTheme(),
     updateStats: true,
@@ -741,7 +745,7 @@ function renderChartCanvas(canvas, chart, { width, height, scale = 1, theme, upd
   drawGrid(context, plot, width, height, xMin, xMax, yRange, theme);
 
   chart.series.forEach((series) => {
-    drawSeries(context, records, series, plot, xMin, xMax, yRange, chart.marker);
+    drawSeries(context, records, series, plot, xMin, xMax, yRange, chart.marker, theme);
   });
 
   if (updateStats) {
@@ -870,8 +874,8 @@ function makeExportChartCanvas(sourceCanvas, chart) {
   const rect = sourceCanvas.getBoundingClientRect();
   const canvas = document.createElement("canvas");
   renderChartCanvas(canvas, chart, {
-    width: Math.max(260, rect.width),
-    height: Math.max(130, rect.height),
+    width: Math.max(MIN_CHART_WIDTH, rect.width),
+    height: Math.max(MIN_CHART_HEIGHT, rect.height),
     theme: EXPORT_CHART_THEME,
   });
   return canvas;
@@ -1028,14 +1032,15 @@ function drawGrid(context, plot, width, height, xMin, xMax, yRange, theme) {
   }
 }
 
-function drawSeries(context, records, series, plot, xMin, xMax, yRange, marker) {
+function drawSeries(context, records, series, plot, xMin, xMax, yRange, marker, theme) {
   const usableRecords = records.filter((record) => Number.isFinite(record.values[series.key]));
 
   if (usableRecords.length === 0) {
     return;
   }
 
-  context.strokeStyle = series.color;
+  const color = getSeriesColor(series, theme);
+  context.strokeStyle = color;
   context.lineWidth = 2;
   context.beginPath();
 
@@ -1053,7 +1058,7 @@ function drawSeries(context, records, series, plot, xMin, xMax, yRange, marker) 
   context.stroke();
 
   if (marker) {
-    context.fillStyle = series.color;
+    context.fillStyle = color;
     usableRecords.slice(-80).forEach((record) => {
       const x = scaleValue(record.timestamp.getTime(), xMin, xMax, plot.left, plot.right);
       const y = scaleValue(record.values[series.key], yRange.min, yRange.max, plot.bottom, plot.top);
@@ -1087,7 +1092,30 @@ function getLiveChartTheme() {
     grid: cssVar("--line", "#d9dee6"),
     text: cssVar("--muted", "#5c6672"),
     emptyText: cssVar("--disabled", "#798391"),
+    invertSeries: window.matchMedia?.("(prefers-color-scheme: dark)")?.matches || false,
   };
+}
+
+function getSeriesColor(series, theme) {
+  return theme.invertSeries ? invertHexColor(series.color) : series.color;
+}
+
+function invertHexColor(color) {
+  const match = String(color).trim().match(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i);
+
+  if (!match) {
+    return color;
+  }
+
+  const hex = match[1].length === 3
+    ? match[1].split("").map((char) => char + char).join("")
+    : match[1];
+  const inverted = hex
+    .match(/.{2}/g)
+    .map((part) => (255 - Number.parseInt(part, 16)).toString(16).padStart(2, "0"))
+    .join("");
+
+  return `#${inverted}`;
 }
 
 function cssVar(name, fallback) {

@@ -612,7 +612,7 @@ input {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: repeat(3, minmax(0, 1fr));
-  grid-auto-rows: minmax(11rem, 1fr);
+  grid-auto-rows: minmax(7rem, 1fr);
   align-content: stretch;
   gap: 0.5rem;
 }
@@ -674,6 +674,12 @@ input {
   height: 0.6rem;
   border-radius: 50%;
   background: var(--swatch);
+}
+
+@media (prefers-color-scheme: dark) {
+  .chart-legend i {
+    background: var(--swatch-dark, var(--swatch));
+  }
 }
 
 .chart-card canvas {
@@ -765,6 +771,13 @@ input {
   white-space: pre-wrap;
 }
 
+@media (min-width: 901px) {
+  .live-viewer-page {
+    height: 100dvh;
+    overflow: hidden;
+  }
+}
+
 @media (max-width: 900px) {
   .program-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -787,7 +800,7 @@ input {
   }
 
   .chart-card {
-    min-height: 18rem;
+    min-height: 12rem;
   }
 
   .serial-readout {
