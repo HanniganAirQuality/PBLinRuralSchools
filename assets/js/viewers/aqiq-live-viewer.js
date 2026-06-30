@@ -289,7 +289,7 @@ function renderColumnToggles() {
 function updateLegends() {
   query(".chart-grid")
     .querySelectorAll(".chart-card")
-    .forEach((card) => refreshChartCardChrome(card, getRenderableChartForCard(card)));
+    .forEach((card) => refreshChartCardDisplay(card, getRenderableChartForCard(card)));
 }
 
 function resolveColumnForSeries(seriesKey) {
@@ -318,13 +318,118 @@ function resolveColumnForSeries(seriesKey) {
     .find(Boolean);
 }
 
-function makeLegendItem(color, fieldName) {
+function makeLegendItem(color, label, { removeKey = "", removeLabel = "" } = {}) {
   const item = document.createElement("span");
   const swatch = document.createElement("i");
   swatch.style.setProperty("--swatch", color);
   swatch.style.setProperty("--swatch-dark", invertHexColor(color));
-  item.append(swatch, document.createTextNode(formatFieldLabel(fieldName)));
+  item.dataset.exportLabel = label;
+  item.append(swatch, document.createTextNode(label));
+
+  if (removeKey) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.removeCombinedChart = removeKey;
+    button.setAttribute("aria-label", `Remove ${removeLabel || label}`);
+    button.textContent = "x";
+    item.append(button);
+  }
+
   return item;
+}
+
+function refreshChartCardDisplay(card, chart = null) {
+  const baseChart = getAllCharts()[card.dataset.chartCard];
+  const displayChart = chart || (baseChart ? makeRenderableSourceChart(card.dataset.chartCard, baseChart) : null);
+
+  setChartCardTitle(card, displayChart);
+  updateChartCardLegend(card, displayChart);
+  card.classList.toggle("is-chart-combined", Boolean(displayChart?.isCombined));
+}
+
+function setChartCardTitle(card, chart) {
+  const title = card.querySelector("h2");
+
+  if (!title) {
+    return;
+  }
+
+  const titleText = chart?.isCombined
+    ? chart.title
+    : card.dataset.chartBaseTitle || chart?.title || "";
+  const unit = chart?.isCombined
+    ? chart.unit
+    : card.dataset.chartBaseUnit || chart?.unit || "";
+  const nodes = [document.createTextNode(titleText)];
+
+  if (unit) {
+    const unitNode = document.createElement("span");
+    unitNode.textContent = ` [${unit}]`;
+    nodes.push(unitNode);
+  }
+
+  title.replaceChildren(...nodes);
+}
+
+function updateChartCardLegend(card, chart) {
+  let legend = card.querySelector(".chart-legend");
+  const hasNativeLegend = legend?.hasAttribute("data-chart-legend") || false;
+  const shouldShowLegend = Boolean(chart && (chart.isCombined || chart.series.length > 1 || hasNativeLegend));
+
+  if (!shouldShowLegend) {
+    if (legend?.dataset.generatedChartLegend !== undefined) {
+      legend.remove();
+    } else {
+      legend?.replaceChildren();
+    }
+
+    return;
+  }
+
+  if (!legend) {
+    legend = document.createElement("div");
+    legend.className = "chart-legend";
+    legend.dataset.generatedChartLegend = "";
+    card.querySelector(".chart-heading")?.after(legend);
+  }
+
+  legend.replaceChildren(...makeLegendItemsForChart(chart));
+}
+
+function makeLegendItemsForChart(chart) {
+  const removableSourceKeys = new Set();
+
+  return chart.series.map((series) => {
+    const column = resolveColumnForSeries(series.key);
+    const fieldLabel = column ? formatFieldLabel(column.name) : series.sourceTitle || series.key;
+    const sourceLabel = series.sourceTitle || fieldLabel;
+    const labelParts = [];
+
+    if (chart.isCombined && series.sourceSeriesCount > 1) {
+      labelParts.push(`${sourceLabel}: ${fieldLabel}`);
+    } else {
+      labelParts.push(chart.isCombined ? sourceLabel : fieldLabel);
+    }
+
+    if (chart.isCombined && chart.axisGroups.length > 1) {
+      labelParts.push(series.axis === "right" ? "(R)" : "(L)");
+    }
+
+    const removeKey = chart.isCombined &&
+      series.sourceKey !== chart.key &&
+      !removableSourceKeys.has(series.sourceKey)
+      ? series.sourceKey
+      : "";
+
+    if (removeKey) {
+      removableSourceKeys.add(removeKey);
+    }
+
+    return makeLegendItem(series.color, labelParts.join(" "), {
+      removeKey,
+      removeLabel: sourceLabel,
+    });
+  });
 }
 
 function formatFieldLabel(fieldName) {
@@ -408,7 +513,7 @@ function syncColumnChartCards() {
 
   app.querySelectorAll("[data-dynamic-chart-card]").forEach((card) => {
     if (!selectedKeys.has(card.dataset.chartCard)) {
-      removeChartFromGroups(card.dataset.chartCard, { reveal: false });
+      removeChartFromGroups(card.dataset.chartCard, { reveal: false, announce: false });
       card.remove();
     }
   });
@@ -458,7 +563,8 @@ function makeColumnChartCard(chart) {
 }
 
 function handleChartGridClick(event) {
-  const button = event.target.closest("[data-remove-combined-chart]");
+  const target = event.target instanceof Element ? event.target : event.target.parentElement;
+  const button = target?.closest("[data-remove-combined-chart]");
 
   if (!button) {
     return;
@@ -472,13 +578,14 @@ function handleChartGridClick(event) {
 
 function handleChartDragStart(event) {
   const grid = query(".chart-grid");
+  const target = event.target instanceof Element ? event.target : event.target.parentElement;
 
-  if (event.target.closest("button")) {
+  if (target?.closest("button")) {
     event.preventDefault();
     return;
   }
 
-  const card = closestVisibleChartCard(event.target);
+  const card = closestVisibleChartCard(target);
 
   if (!card || !grid.contains(card)) {
     return;
@@ -680,12 +787,12 @@ function combineChartCards(targetCard, draggedCard) {
   delete state.chartGroups[draggedKey];
   state.chartGroups[targetKey] = combinedKeys;
   applyChartGroupVisibility(targetKey);
-  refreshChartCardChrome(targetRootCard);
+  refreshChartCardDisplay(targetRootCard);
   setStatus("Plots combined");
   return true;
 }
 
-function removeChartFromGroups(chartKey, { reveal = true } = {}) {
+function removeChartFromGroups(chartKey, { reveal = true, announce = true } = {}) {
   const rootKey = getRootChartKey(chartKey);
   const groupKeys = state.chartGroups[rootKey];
 
@@ -713,10 +820,13 @@ function removeChartFromGroups(chartKey, { reveal = true } = {}) {
 
   const currentRootCard = getChartCard(getRootChartKey(rootKey));
   if (currentRootCard) {
-    refreshChartCardChrome(currentRootCard);
+    refreshChartCardDisplay(currentRootCard);
   }
 
-  setStatus("Plot split out");
+  if (announce) {
+    setStatus("Plot split out");
+  }
+
   return true;
 }
 
@@ -774,7 +884,6 @@ function applyChartGroupVisibility(rootKey) {
       card.dataset.combinedInto = rootKey;
       card.hidden = true;
       card.setAttribute("aria-hidden", "true");
-      refreshChartCardChrome(card);
     });
 }
 
@@ -796,7 +905,7 @@ function revealUngroupedChartCard(chartKey, insertAfterCard = null) {
   }
 
   applyChartCardVisibility(card);
-  refreshChartCardChrome(card);
+  refreshChartCardDisplay(card);
 }
 
 function applyChartCardVisibility(card) {
@@ -1098,7 +1207,7 @@ function renderAll() {
     .querySelectorAll(".chart-card")
     .forEach((card) => {
       const chart = getRenderableChartForCard(card);
-      refreshChartCardChrome(card, chart);
+      refreshChartCardDisplay(card, chart);
 
       if (chart && !card.hidden) {
         renderChart(card, chart);

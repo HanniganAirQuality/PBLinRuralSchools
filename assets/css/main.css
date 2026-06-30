@@ -649,9 +649,14 @@ input {
 }
 
 .chart-card.is-chart-drop-before,
-.chart-card.is-chart-drop-after {
+.chart-card.is-chart-drop-after,
+.chart-card.is-chart-drop-combine {
   border-color: var(--accent);
   box-shadow: 0 18px 48px var(--shadow-hover);
+}
+
+.chart-card.is-chart-combined {
+  border-top-color: var(--accent);
 }
 
 .chart-card.is-chart-drop-before::before,
@@ -673,6 +678,16 @@ input {
 
 .chart-card.is-chart-drop-after::after {
   right: -0.4rem;
+}
+
+.chart-card.is-chart-drop-combine::before {
+  content: "";
+  position: absolute;
+  inset: 0.45rem;
+  z-index: 2;
+  border: 2px dashed var(--accent);
+  border-radius: 6px;
+  pointer-events: none;
 }
 
 .chart-heading {
@@ -712,6 +727,27 @@ input {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
+}
+
+.chart-legend button {
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  padding: 0;
+  color: var(--muted);
+  background: var(--surface-panel);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.chart-legend button:hover,
+.chart-legend button:focus-visible {
+  border-color: var(--accent);
+  color: var(--ink);
 }
 
 .chart-legend i {
