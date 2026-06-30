@@ -30,7 +30,6 @@ export class SerialLineReader {
     });
 
     this.keepReading = true;
-    this.onStatus?.("Connected");
     this.readLoop();
   }
 

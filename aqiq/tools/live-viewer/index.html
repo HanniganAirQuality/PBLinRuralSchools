@@ -54,7 +54,9 @@
           <span>Timeline size (min)</span>
           <input id="timeline-minutes" type="number" min="0.25" max="1440" step="0.25" value="5" data-timeline-minutes>
         </label>
+      </div>
 
+      <div class="plot-settings">
         <fieldset class="plot-toggles">
           <legend>Plots shown</legend>
           <label><input type="checkbox" data-plot-toggle value="temperature" checked> Temperature</label>
@@ -80,10 +82,10 @@
           <span>Last timestamp</span>
           <strong data-last-time>--</strong>
         </div>
-        <details class="serial-panel raw-line-panel">
-          <summary>Latest row</summary>
+        <div class="serial-panel raw-line-panel">
+          <span>Latest row</span>
           <code data-latest-line>--</code>
-        </details>
+        </div>
         <div class="serial-panel debug-panel">
           <span>Debug values</span>
           <div class="debug-value-grid" data-debug-values></div>

@@ -81,6 +81,7 @@ const state = {
   skipNextSerialLine: false,
   renderQueued: false,
   displayWindowMs: DEFAULT_TIMELINE_MINUTES * 60 * 1000,
+  hasSuccessfulRead: false,
   statusMessage: "",
   statusRepeatCount: 0,
 };
@@ -309,12 +310,15 @@ async function connectSerial() {
 
     setButtons({ connecting: true });
     state.skipNextSerialLine = true;
+    state.hasSuccessfulRead = false;
     setStatus("Opening serial port...");
     await state.serial.connect();
     setButtons({ connected: true });
+    setStatus("Waiting for serial data...");
   } catch (error) {
     setButtons({ connected: false });
     state.serial = null;
+    state.hasSuccessfulRead = false;
     setStatus(error.message || "Connection failed");
   }
 }
@@ -323,6 +327,7 @@ async function disconnectSerial() {
   await state.serial?.disconnect();
   state.serial = null;
   state.skipNextSerialLine = false;
+  state.hasSuccessfulRead = false;
   setButtons({ connected: false });
 }
 
@@ -333,6 +338,7 @@ function handleSerialError(error) {
 function handleSerialDisconnect() {
   state.serial = null;
   state.skipNextSerialLine = false;
+  state.hasSuccessfulRead = false;
   setButtons({ connected: false });
 }
 
@@ -441,6 +447,7 @@ function handleSerialLine(line) {
     return;
   }
 
+  markReadSuccessful();
   state.records.push(record);
 
   if (state.records.length > MAX_RECORDS) {
@@ -449,6 +456,15 @@ function handleSerialLine(line) {
 
   updateReadout(record);
   queueRender();
+}
+
+function markReadSuccessful() {
+  if (state.hasSuccessfulRead) {
+    return;
+  }
+
+  state.hasSuccessfulRead = true;
+  setStatus("Connected");
 }
 
 function mapSerialValues(values, rawLine) {
