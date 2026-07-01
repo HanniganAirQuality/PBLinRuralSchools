@@ -479,6 +479,36 @@ input {
   gap: 0.65rem;
 }
 
+.fire-pod-controls {
+  align-items: stretch;
+}
+
+.pod-control-card {
+  min-width: min(100%, 31rem);
+  flex: 1 1 31rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.45rem;
+  display: grid;
+  grid-template-columns: minmax(8rem, 0.9fr) auto auto minmax(10rem, 1fr);
+  align-items: center;
+  gap: 0.55rem;
+  background: var(--surface-panel);
+}
+
+.pod-label-input {
+  width: 100%;
+  min-height: 2.25rem;
+}
+
+.pod-control-card .connection-status {
+  width: 100%;
+  margin-left: 0;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+}
+
 .control-group {
   display: grid;
   gap: 0.25rem;
@@ -550,9 +580,18 @@ input {
   border-top: 1px solid var(--line);
   padding: 0.65rem;
   display: grid;
-  grid-template-columns: minmax(12rem, max-content) minmax(12rem, max-content) minmax(10rem, max-content);
+  grid-template-columns: minmax(12rem, max-content) minmax(12rem, max-content) minmax(18rem, 1fr) minmax(10rem, max-content);
   align-items: start;
   gap: 0.75rem;
+}
+
+.fire-advanced-grid {
+  grid-template-columns: minmax(12rem, max-content) minmax(12rem, max-content) minmax(18rem, 1fr) minmax(10rem, max-content);
+}
+
+.advanced-schema-card {
+  min-width: min(100%, 18rem);
+  align-self: stretch;
 }
 
 .plot-settings {
@@ -615,7 +654,14 @@ input {
   gap: 0.5rem;
 }
 
+.fire-chart-grid {
+  height: calc(100dvh - 1rem);
+  grid-template-columns: 1fr;
+  grid-template-rows: repeat(3, minmax(7rem, 1fr));
+}
+
 .chart-card {
+  position: relative;
   min-width: 0;
   min-height: 0;
   border: 1px solid var(--line);
@@ -628,10 +674,79 @@ input {
   gap: 0.35rem;
 }
 
+.chart-card[draggable="true"] {
+  cursor: grab;
+}
+
+.chart-card[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.chart-grid.is-chart-drag-active .chart-card {
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    opacity 120ms ease;
+}
+
+.chart-card.is-chart-dragging {
+  opacity: 0.48;
+}
+
+.chart-card.is-chart-drop-before,
+.chart-card.is-chart-drop-after,
+.chart-card.is-chart-drop-combine {
+  border-color: var(--accent);
+  box-shadow: 0 18px 48px var(--shadow-hover);
+}
+
+.chart-card.is-chart-combined {
+  border-top-color: var(--accent);
+}
+
+.chart-card.is-chart-drop-before::before,
+.chart-card.is-chart-drop-after::after {
+  content: "";
+  position: absolute;
+  top: 0.45rem;
+  bottom: 0.45rem;
+  z-index: 2;
+  width: 0.2rem;
+  border-radius: 999px;
+  background: var(--accent);
+  pointer-events: none;
+}
+
+.chart-card.is-chart-drop-before::before {
+  left: -0.4rem;
+}
+
+.chart-card.is-chart-drop-after::after {
+  right: -0.4rem;
+}
+
+.chart-card.is-chart-drop-combine::before {
+  content: "";
+  position: absolute;
+  inset: 0.45rem;
+  z-index: 2;
+  border: 2px dashed var(--accent);
+  border-radius: 6px;
+  pointer-events: none;
+}
+
 .chart-heading {
   display: flex;
   justify-content: space-between;
   gap: 0.75rem;
+}
+
+.chart-heading > div {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
 }
 
 .chart-heading h2 {
@@ -649,6 +764,25 @@ input {
 
 .chart-heading span {
   white-space: nowrap;
+}
+
+.chart-split-button {
+  min-height: 1.25rem;
+  border-color: var(--accent);
+  border-radius: 999px;
+  padding: 0 0.45rem;
+  color: var(--ink);
+  background: var(--accent);
+  font-size: 0.58rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.chart-split-button:hover,
+.chart-split-button:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
+  outline: none;
 }
 
 .chart-legend {
@@ -697,6 +831,11 @@ input {
   gap: 0.75rem;
 }
 
+.fire-serial-readout {
+  border-top: 1px solid var(--line);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .export-actions {
   display: flex;
   justify-content: flex-end;
@@ -716,6 +855,11 @@ input {
 .raw-line-panel,
 .debug-panel {
   grid-column: 1 / -1;
+}
+
+.fire-serial-readout .raw-line-panel,
+.fire-serial-readout .debug-panel {
+  grid-column: span 2;
 }
 
 .serial-readout strong,
@@ -790,12 +934,39 @@ input {
     grid-auto-rows: auto;
   }
 
+  .fire-chart-grid {
+    grid-template-rows: none;
+  }
+
   .chart-card {
     min-height: 12rem;
   }
 
+  .chart-card.is-chart-drop-before::before,
+  .chart-card.is-chart-drop-after::after {
+    left: 0.45rem;
+    right: 0.45rem;
+    width: auto;
+    height: 0.2rem;
+  }
+
+  .chart-card.is-chart-drop-before::before {
+    top: -0.4rem;
+    bottom: auto;
+  }
+
+  .chart-card.is-chart-drop-after::after {
+    top: auto;
+    bottom: -0.4rem;
+  }
+
   .serial-readout {
     grid-template-columns: 1fr;
+  }
+
+  .fire-serial-readout .raw-line-panel,
+  .fire-serial-readout .debug-panel {
+    grid-column: 1 / -1;
   }
 }
 
@@ -843,6 +1014,10 @@ input {
   .connection-status,
   .control-group {
     width: 100%;
+  }
+
+  .pod-control-card {
+    grid-template-columns: 1fr;
   }
 
   .metric-strip {

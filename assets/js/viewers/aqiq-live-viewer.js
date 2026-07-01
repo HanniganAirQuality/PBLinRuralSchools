@@ -13,6 +13,8 @@ const MAX_TIMELINE_MINUTES = 1440;
 const MAX_RECORDS = 2400;
 const MIN_CHART_WIDTH = 220;
 const MIN_CHART_HEIGHT = 88;
+const CHART_DRAG_MIME = "application/x-haq-chart-card";
+const CHART_COMBINE_INSET = 0.22;
 const COLUMN_CHART_COLORS = [
   "#0f766e",
   "#dc2626",
@@ -90,6 +92,8 @@ const state = {
   skipNextSerialLine: false,
   renderQueued: false,
   displayWindowMs: DEFAULT_TIMELINE_MINUTES * 60 * 1000,
+  draggingChartKey: null,
+  chartGroups: {},
   hasSuccessfulRead: false,
   statusMessage: "",
   statusRepeatCount: 0,
@@ -127,9 +131,51 @@ function bindControls() {
     toggle.addEventListener("change", handlePlotToggle);
   });
   query("[data-column-toggles]").addEventListener("change", handleColumnPlotToggle);
+  bindChartDragReordering();
   window.addEventListener("resize", queueRender);
   const colorScheme = window.matchMedia?.("(prefers-color-scheme: dark)");
   colorScheme?.addEventListener?.("change", queueRender);
+}
+
+function bindChartDragReordering() {
+  const grid = query(".chart-grid");
+  grid.addEventListener("click", handleChartGridClick);
+  grid.addEventListener("dragstart", handleChartDragStart);
+  grid.addEventListener("dragover", handleChartDragOver);
+  grid.addEventListener("dragleave", handleChartDragLeave);
+  grid.addEventListener("drop", handleChartDrop);
+  grid.addEventListener("dragend", handleChartDragEnd);
+  refreshDraggableChartCards();
+}
+
+function refreshDraggableChartCards() {
+  query(".chart-grid")
+    .querySelectorAll(".chart-card")
+    .forEach(prepareChartCardDrag);
+}
+
+function prepareChartCardDrag(card) {
+  captureChartCardBaseTitle(card);
+  card.draggable = true;
+  card.setAttribute("aria-grabbed", "false");
+}
+
+function captureChartCardBaseTitle(card) {
+  const title = card.querySelector("h2");
+
+  if (!title || card.dataset.chartBaseTitle) {
+    return;
+  }
+
+  const unit = title.querySelector("span")?.textContent?.trim() || "";
+  const titleText = [...title.childNodes]
+    .filter((node) => node.nodeType === Node.TEXT_NODE)
+    .map((node) => node.textContent.trim())
+    .join(" ")
+    .trim();
+
+  card.dataset.chartBaseTitle = titleText || title.textContent.replace(unit, "").trim();
+  card.dataset.chartBaseUnit = unit.replace(/^\[/, "").replace(/\]$/, "");
 }
 
 async function loadYamlSettings() {
@@ -241,23 +287,9 @@ function renderColumnToggles() {
 }
 
 function updateLegends() {
-  Object.entries(CHARTS).forEach(([key, chart]) => {
-    const target = app.querySelector(`[data-chart-legend="${key}"]`);
-
-    if (!target) {
-      return;
-    }
-
-    target.replaceChildren(
-      ...chart.series
-        .map((series) => ({
-          series,
-          column: resolveColumnForSeries(series.key),
-        }))
-        .filter((item) => item.column)
-        .map((item) => makeLegendItem(item.series.color, item.column.name)),
-    );
-  });
+  query(".chart-grid")
+    .querySelectorAll(".chart-card")
+    .forEach((card) => refreshChartCardDisplay(card, getRenderableChartForCard(card)));
 }
 
 function resolveColumnForSeries(seriesKey) {
@@ -286,13 +318,120 @@ function resolveColumnForSeries(seriesKey) {
     .find(Boolean);
 }
 
-function makeLegendItem(color, fieldName) {
+function makeLegendItem(color, label) {
   const item = document.createElement("span");
   const swatch = document.createElement("i");
   swatch.style.setProperty("--swatch", color);
   swatch.style.setProperty("--swatch-dark", invertHexColor(color));
-  item.append(swatch, document.createTextNode(formatFieldLabel(fieldName)));
+  item.dataset.exportLabel = label;
+  item.append(swatch, document.createTextNode(label));
   return item;
+}
+
+function refreshChartCardDisplay(card, chart = null) {
+  const baseChart = getAllCharts()[card.dataset.chartCard];
+  const displayChart = chart || (baseChart ? makeRenderableSourceChart(card.dataset.chartCard, baseChart) : null);
+
+  setChartCardTitle(card, displayChart);
+  updateChartSplitControl(card, displayChart);
+  updateChartCardLegend(card, displayChart);
+  card.classList.toggle("is-chart-combined", Boolean(displayChart?.isCombined));
+}
+
+function setChartCardTitle(card, chart) {
+  const title = card.querySelector("h2");
+
+  if (!title) {
+    return;
+  }
+
+  const titleText = chart?.isCombined
+    ? chart.title
+    : card.dataset.chartBaseTitle || chart?.title || "";
+  const unit = chart?.isCombined
+    ? chart.unit
+    : card.dataset.chartBaseUnit || chart?.unit || "";
+  const nodes = [document.createTextNode(titleText)];
+
+  if (unit) {
+    const unitNode = document.createElement("span");
+    unitNode.textContent = ` [${unit}]`;
+    nodes.push(unitNode);
+  }
+
+  title.replaceChildren(...nodes);
+}
+
+function updateChartSplitControl(card, chart) {
+  const titleWrap = card.querySelector(".chart-heading > div");
+  let button = titleWrap?.querySelector("[data-split-combined-chart]");
+
+  if (!titleWrap) {
+    return;
+  }
+
+  if (!chart?.isCombined) {
+    button?.remove();
+    return;
+  }
+
+  if (!button) {
+    button = document.createElement("button");
+    button.type = "button";
+    button.className = "chart-split-button";
+    button.dataset.splitCombinedChart = "";
+    titleWrap.append(button);
+  }
+
+  button.dataset.splitCombinedChart = chart.key;
+  button.textContent = "SPLIT";
+  button.setAttribute("aria-label", `Split ${chart.title}`);
+}
+
+function updateChartCardLegend(card, chart) {
+  let legend = card.querySelector(".chart-legend");
+  const hasNativeLegend = legend?.hasAttribute("data-chart-legend") || false;
+  const shouldShowLegend = Boolean(chart && (chart.isCombined || chart.series.length > 1 || hasNativeLegend));
+
+  if (!shouldShowLegend) {
+    if (legend?.dataset.generatedChartLegend !== undefined) {
+      legend.remove();
+    } else {
+      legend?.replaceChildren();
+    }
+
+    return;
+  }
+
+  if (!legend) {
+    legend = document.createElement("div");
+    legend.className = "chart-legend";
+    legend.dataset.generatedChartLegend = "";
+    card.querySelector(".chart-heading")?.after(legend);
+  }
+
+  legend.replaceChildren(...makeLegendItemsForChart(chart));
+}
+
+function makeLegendItemsForChart(chart) {
+  return chart.series.map((series) => {
+    const column = resolveColumnForSeries(series.key);
+    const fieldLabel = column ? formatFieldLabel(column.name) : series.sourceTitle || series.key;
+    const sourceLabel = series.sourceTitle || fieldLabel;
+    const labelParts = [];
+
+    if (chart.isCombined && series.sourceSeriesCount > 1) {
+      labelParts.push(`${sourceLabel}: ${fieldLabel}`);
+    } else {
+      labelParts.push(chart.isCombined ? sourceLabel : fieldLabel);
+    }
+
+    if (chart.isCombined && chart.axisGroups.length > 1) {
+      labelParts.push(series.axis === "right" ? "(R)" : "(L)");
+    }
+
+    return makeLegendItem(series.color, labelParts.join(" "));
+  });
 }
 
 function formatFieldLabel(fieldName) {
@@ -355,15 +494,8 @@ function handleSerialDisconnect() {
 }
 
 function handlePlotToggle() {
-  app.querySelectorAll("[data-plot-toggle]").forEach((toggle) => {
-    const card = app.querySelector(`[data-chart-card="${toggle.value}"]`);
-
-    if (card) {
-      card.toggleAttribute("hidden", !toggle.checked);
-      card.setAttribute("aria-hidden", String(!toggle.checked));
-    }
-  });
-
+  syncChartGroupsWithAvailableCharts();
+  app.querySelectorAll("[data-chart-card]").forEach(applyChartCardVisibility);
   queueRender();
 }
 
@@ -383,6 +515,7 @@ function syncColumnChartCards() {
 
   app.querySelectorAll("[data-dynamic-chart-card]").forEach((card) => {
     if (!selectedKeys.has(card.dataset.chartCard)) {
+      removeChartFromGroups(card.dataset.chartCard, { reveal: false, announce: false });
       card.remove();
     }
   });
@@ -392,8 +525,12 @@ function syncColumnChartCards() {
       return;
     }
 
-    grid.append(makeColumnChartCard(chart));
+    const card = makeColumnChartCard(chart);
+    prepareChartCardDrag(card);
+    grid.append(card);
   });
+
+  syncChartGroupsWithAvailableCharts();
 }
 
 function makeColumnChartCard(chart) {
@@ -427,7 +564,425 @@ function makeColumnChartCard(chart) {
   return card;
 }
 
+function handleChartGridClick(event) {
+  const target = event.target instanceof Element ? event.target : event.target.parentElement;
+  const button = target?.closest("[data-split-combined-chart]");
+
+  if (!button) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+  splitChartGroup(button.dataset.splitCombinedChart);
+  queueRender();
+}
+
+function handleChartDragStart(event) {
+  const grid = query(".chart-grid");
+  const target = event.target instanceof Element ? event.target : event.target.parentElement;
+
+  if (target?.closest("button")) {
+    event.preventDefault();
+    return;
+  }
+
+  const card = closestVisibleChartCard(target);
+
+  if (!card || !grid.contains(card)) {
+    return;
+  }
+
+  state.draggingChartKey = card.dataset.chartCard;
+  card.classList.add("is-chart-dragging");
+  card.setAttribute("aria-grabbed", "true");
+  grid.classList.add("is-chart-drag-active");
+
+  event.dataTransfer.effectAllowed = "move";
+  event.dataTransfer.setData(CHART_DRAG_MIME, state.draggingChartKey);
+  event.dataTransfer.setData(
+    "text/plain",
+    card.querySelector("h2")?.textContent?.trim() || state.draggingChartKey,
+  );
+}
+
+function handleChartDragOver(event) {
+  const grid = query(".chart-grid");
+  const draggedCard = getDraggedChartCard(event);
+
+  if (!draggedCard) {
+    return;
+  }
+
+  event.preventDefault();
+  event.dataTransfer.dropEffect = "move";
+
+  const target = closestVisibleChartCard(event.target);
+  clearChartDropIndicators(target);
+
+  if (!target || target === draggedCard || !grid.contains(target)) {
+    return;
+  }
+
+  const action = getChartDropAction(event, target, grid);
+  target.classList.toggle("is-chart-drop-before", action === "before");
+  target.classList.toggle("is-chart-drop-after", action === "after");
+  target.classList.toggle("is-chart-drop-combine", action === "combine");
+}
+
+function handleChartDragLeave(event) {
+  const grid = query(".chart-grid");
+  const relatedTarget = event.relatedTarget;
+
+  if (!(relatedTarget instanceof Node) || !grid.contains(relatedTarget)) {
+    clearChartDropIndicators();
+  }
+}
+
+function handleChartDrop(event) {
+  const grid = query(".chart-grid");
+  const draggedCard = getDraggedChartCard(event);
+
+  if (!draggedCard) {
+    return;
+  }
+
+  event.preventDefault();
+
+  const target = closestVisibleChartCard(event.target);
+  const didChange = moveOrCombineDraggedChartCard(event, grid, draggedCard, target);
+
+  clearChartDragState();
+
+  if (didChange) {
+    queueRender();
+  }
+}
+
+function handleChartDragEnd() {
+  clearChartDragState();
+}
+
+function moveOrCombineDraggedChartCard(event, grid, draggedCard, target) {
+  if (!target || !grid.contains(target)) {
+    grid.append(draggedCard);
+    return true;
+  }
+
+  if (target === draggedCard) {
+    return false;
+  }
+
+  const action = getChartDropAction(event, target, grid);
+
+  if (action === "combine") {
+    return combineChartCards(target, draggedCard);
+  }
+
+  if (action === "before") {
+    target.before(draggedCard);
+  } else {
+    target.after(draggedCard);
+  }
+
+  return true;
+}
+
+function getChartDropAction(event, target, grid) {
+  const rect = target.getBoundingClientRect();
+  const xRatio = (event.clientX - rect.left) / rect.width;
+  const yRatio = (event.clientY - rect.top) / rect.height;
+
+  if (
+    xRatio >= CHART_COMBINE_INSET &&
+    xRatio <= 1 - CHART_COMBINE_INSET &&
+    yRatio >= CHART_COMBINE_INSET &&
+    yRatio <= 1 - CHART_COMBINE_INSET
+  ) {
+    return "combine";
+  }
+
+  const columnCount = getGridColumnCount(grid);
+
+  if (columnCount > 1) {
+    return xRatio < 0.5 ? "before" : "after";
+  }
+
+  return yRatio < 0.5 ? "before" : "after";
+}
+
+function getGridColumnCount(grid) {
+  const columns = window.getComputedStyle(grid).gridTemplateColumns;
+
+  if (!columns || columns === "none") {
+    return 1;
+  }
+
+  return Math.max(1, columns.split(/\s+/).filter(Boolean).length);
+}
+
+function getDraggedChartCard(event) {
+  const key = state.draggingChartKey || event.dataTransfer?.getData(CHART_DRAG_MIME);
+
+  if (!key) {
+    return null;
+  }
+
+  return [...query(".chart-grid").querySelectorAll(".chart-card")]
+    .find((card) => card.dataset.chartCard === key) || null;
+}
+
+function closestVisibleChartCard(target) {
+  if (!(target instanceof Element)) {
+    return null;
+  }
+
+  return target.closest(".chart-card:not([hidden])");
+}
+
+function clearChartDropIndicators(exceptCard = null) {
+  query(".chart-grid")
+    .querySelectorAll(".is-chart-drop-before, .is-chart-drop-after, .is-chart-drop-combine")
+    .forEach((card) => {
+      if (card === exceptCard) {
+        return;
+      }
+
+      card.classList.remove("is-chart-drop-before", "is-chart-drop-after", "is-chart-drop-combine");
+    });
+}
+
+function clearChartDragState() {
+  const grid = query(".chart-grid");
+  const draggedCard = getDraggedChartCard({ dataTransfer: null });
+
+  clearChartDropIndicators();
+  grid.classList.remove("is-chart-drag-active");
+
+  if (draggedCard) {
+    draggedCard.classList.remove("is-chart-dragging");
+    draggedCard.setAttribute("aria-grabbed", "false");
+  }
+
+  state.draggingChartKey = null;
+}
+
+function combineChartCards(targetCard, draggedCard) {
+  const targetKey = getRootChartKey(targetCard.dataset.chartCard);
+  const draggedKey = getRootChartKey(draggedCard.dataset.chartCard);
+
+  if (!targetKey || !draggedKey || targetKey === draggedKey) {
+    return false;
+  }
+
+  const targetRootCard = getChartCard(targetKey) || targetCard;
+  const baseCharts = getAllCharts();
+  const combinedKeys = uniqueStrings([
+    ...getChartGroupKeys(targetKey),
+    ...getChartGroupKeys(draggedKey),
+  ]).filter((key) => baseCharts[key] && isChartEnabled(key));
+
+  if (combinedKeys.length < 2) {
+    return false;
+  }
+
+  delete state.chartGroups[draggedKey];
+  state.chartGroups[targetKey] = combinedKeys;
+  applyChartGroupVisibility(targetKey);
+  refreshChartCardDisplay(targetRootCard);
+  setStatus("Plots combined");
+  return true;
+}
+
+function removeChartFromGroups(chartKey, { reveal = true, announce = true } = {}) {
+  const rootKey = getRootChartKey(chartKey);
+  const groupKeys = state.chartGroups[rootKey];
+
+  if (!groupKeys) {
+    return false;
+  }
+
+  const remainingKeys = groupKeys.filter((key) => key !== chartKey);
+  delete state.chartGroups[rootKey];
+
+  if (remainingKeys.length > 1) {
+    const nextRootKey = remainingKeys.includes(rootKey) ? rootKey : remainingKeys[0];
+    state.chartGroups[nextRootKey] = uniqueStrings([
+      nextRootKey,
+      ...remainingKeys.filter((key) => key !== nextRootKey),
+    ]);
+    applyChartGroupVisibility(nextRootKey);
+  } else {
+    revealUngroupedChartCard(remainingKeys[0], getChartCard(rootKey));
+  }
+
+  if (reveal) {
+    revealUngroupedChartCard(chartKey, getChartCard(rootKey));
+  }
+
+  const currentRootCard = getChartCard(getRootChartKey(rootKey));
+  if (currentRootCard) {
+    refreshChartCardDisplay(currentRootCard);
+  }
+
+  if (announce) {
+    setStatus("Plot split out");
+  }
+
+  return true;
+}
+
+function splitChartGroup(chartKey) {
+  const rootKey = getRootChartKey(chartKey);
+  const groupKeys = state.chartGroups[rootKey];
+  const rootCard = getChartCard(rootKey);
+
+  if (!groupKeys || groupKeys.length < 2) {
+    return false;
+  }
+
+  delete state.chartGroups[rootKey];
+
+  let anchorCard = rootCard;
+  groupKeys.forEach((key) => {
+    const card = getChartCard(key);
+
+    if (!card) {
+      return;
+    }
+
+    delete card.dataset.combinedInto;
+
+    if (anchorCard && card !== anchorCard) {
+      anchorCard.after(card);
+    }
+
+    anchorCard = card;
+    applyChartCardVisibility(card);
+    refreshChartCardDisplay(card);
+  });
+
+  setStatus("Plots split");
+  return true;
+}
+
+function syncChartGroupsWithAvailableCharts() {
+  const baseCharts = getAllCharts();
+
+  Object.entries({ ...state.chartGroups }).forEach(([rootKey, groupKeys]) => {
+    const keptKeys = groupKeys.filter((key) => baseCharts[key] && isChartEnabled(key));
+    const removedKeys = groupKeys.filter((key) => !keptKeys.includes(key));
+
+    removedKeys.forEach((key) => revealUngroupedChartCard(key));
+
+    if (!keptKeys.includes(rootKey)) {
+      delete state.chartGroups[rootKey];
+      keptKeys.forEach((key) => revealUngroupedChartCard(key));
+      return;
+    }
+
+    if (keptKeys.length > 1) {
+      state.chartGroups[rootKey] = keptKeys;
+      applyChartGroupVisibility(rootKey);
+    } else {
+      delete state.chartGroups[rootKey];
+      revealUngroupedChartCard(keptKeys[0]);
+    }
+  });
+}
+
+function applyChartGroupVisibility(rootKey) {
+  const groupKeys = getChartGroupKeys(rootKey);
+  const rootCard = getChartCard(rootKey);
+  let anchorCard = rootCard;
+
+  if (!rootCard) {
+    return;
+  }
+
+  delete rootCard.dataset.combinedInto;
+  applyChartCardVisibility(rootCard);
+
+  groupKeys
+    .filter((key) => key !== rootKey)
+    .forEach((key) => {
+      const card = getChartCard(key);
+
+      if (!card) {
+        return;
+      }
+
+      if (anchorCard) {
+        anchorCard.after(card);
+      }
+
+      anchorCard = card;
+      card.dataset.combinedInto = rootKey;
+      card.hidden = true;
+      card.setAttribute("aria-hidden", "true");
+    });
+}
+
+function revealUngroupedChartCard(chartKey, insertAfterCard = null) {
+  if (!chartKey) {
+    return;
+  }
+
+  const card = getChartCard(chartKey);
+
+  if (!card) {
+    return;
+  }
+
+  delete card.dataset.combinedInto;
+
+  if (insertAfterCard && insertAfterCard !== card) {
+    insertAfterCard.after(card);
+  }
+
+  applyChartCardVisibility(card);
+  refreshChartCardDisplay(card);
+}
+
+function applyChartCardVisibility(card) {
+  const hidden = Boolean(card.dataset.combinedInto) || !isChartEnabled(card.dataset.chartCard);
+  card.toggleAttribute("hidden", hidden);
+  card.setAttribute("aria-hidden", String(hidden));
+}
+
+function isChartEnabled(chartKey) {
+  const toggle = [...app.querySelectorAll("[data-plot-toggle]")]
+    .find((item) => item.value === chartKey);
+
+  return !toggle || toggle.checked;
+}
+
+function getChartGroupKeys(chartKey) {
+  return state.chartGroups[chartKey] || [chartKey];
+}
+
+function getRootChartKey(chartKey) {
+  if (!chartKey) {
+    return "";
+  }
+
+  const groupEntry = Object.entries(state.chartGroups)
+    .find(([, groupKeys]) => groupKeys.includes(chartKey));
+
+  return groupEntry?.[0] || chartKey;
+}
+
+function getChartCard(chartKey) {
+  return [...query(".chart-grid").querySelectorAll("[data-chart-card]")]
+    .find((card) => card.dataset.chartCard === chartKey) || null;
+}
+
+function uniqueStrings(values) {
+  return [...new Set(values.filter(Boolean))];
+}
+
 function handleSerialLine(line) {
+  const receivedAt = new Date();
   const values = parseCsvLine(line);
   updateRawDebugReadout(line, values);
 
@@ -439,23 +994,16 @@ function handleSerialLine(line) {
   if (state.skipNextSerialLine) {
     state.skipNextSerialLine = false;
 
-    if (!hasTimestampFirst(values)) {
+    if (!isCsvLikeLine(line, values)) {
       setStatus(line);
       return;
     }
-
-    return;
   }
 
-  if (!hasTimestampFirst(values)) {
-    setStatus(line);
-    return;
-  }
-
-  const record = mapSerialValues(values, line);
+  const record = mapSerialValues(values, line, receivedAt);
 
   if (!record) {
-    setStatus(line);
+    reportSerialNotice(line, values);
     return;
   }
 
@@ -479,7 +1027,7 @@ function markReadSuccessful() {
   setStatus("Connected");
 }
 
-function mapSerialValues(values, rawLine) {
+function mapSerialValues(values, rawLine, receivedAt = new Date()) {
   const schema = state.schema;
 
   if (!schema?.columns?.length || values.length === 0) {
@@ -497,13 +1045,6 @@ function mapSerialValues(values, rawLine) {
     fields[column.name] = normalizedValues[index];
   });
 
-  const timestampRaw = getField(fields, FIELD_ALIASES.timestamp) || normalizedValues[0];
-  const timestamp = parseTimestamp(timestampRaw);
-
-  if (!timestamp) {
-    return null;
-  }
-
   const numericValues = {};
   schema.columns.forEach((column, index) => {
     const value = Number(normalizedValues[index]);
@@ -514,7 +1055,7 @@ function mapSerialValues(values, rawLine) {
   });
 
   return {
-    timestamp,
+    timestamp: receivedAt,
     rawLine,
     fields,
     values: {
@@ -580,8 +1121,8 @@ function isHeaderRow(values) {
   return first === "datetime" || first === "timestamp";
 }
 
-function hasTimestampFirst(values) {
-  return Boolean(parseTimestamp(values[0]));
+function isCsvLikeLine(line, values = parseCsvLine(line)) {
+  return line.includes(",") || values.length > 1;
 }
 
 function getField(fields, aliases) {
@@ -599,16 +1140,12 @@ function numberField(fields, aliases) {
   return Number.isFinite(value) ? value : null;
 }
 
-function parseTimestamp(value) {
-  const rawValue = String(value || "").trim();
-
-  if (!/^\d{4}-\d{1,2}-\d{1,2}[ T]\d{1,2}:\d{2}(?::\d{2})?/.test(rawValue)) {
-    return null;
+function reportSerialNotice(line, values) {
+  if (isCsvLikeLine(line, values)) {
+    return;
   }
 
-  const normalized = rawValue.replace(" ", "T");
-  const parsed = new Date(normalized);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+  setStatus(line);
 }
 
 function resetData() {
@@ -617,8 +1154,8 @@ function resetData() {
   query("[data-last-time]").textContent = "--";
   query("[data-latest-line]").textContent = "--";
   renderDebugValues();
-  Object.values(getAllCharts()).forEach((chart) => {
-    query(`[data-chart-stats="${chart.stats}"]`).textContent = "--";
+  app.querySelectorAll("[data-chart-stats]").forEach((stats) => {
+    stats.textContent = "--";
   });
   app.querySelectorAll("[data-metric]").forEach((metric) => {
     metric.textContent = "--";
@@ -684,17 +1221,21 @@ function queueRender() {
 }
 
 function renderAll() {
-  Object.entries(getAllCharts()).forEach(([key, chart]) => {
-    const card = app.querySelector(`[data-chart-card="${key}"]`);
+  syncChartGroupsWithAvailableCharts();
+  query(".chart-grid")
+    .querySelectorAll(".chart-card")
+    .forEach((card) => {
+      const chart = getRenderableChartForCard(card);
+      refreshChartCardDisplay(card, chart);
 
-    if (!card?.hidden) {
-      renderChart(chart);
-    }
-  });
+      if (chart && !card.hidden) {
+        renderChart(card, chart);
+      }
+    });
 }
 
-function renderChart(chart) {
-  const canvas = document.getElementById(chart.canvas);
+function renderChart(card, chart) {
+  const canvas = card.querySelector("canvas");
   const rect = canvas.getBoundingClientRect();
 
   renderChartCanvas(canvas, chart, {
@@ -717,7 +1258,9 @@ function renderChartCanvas(canvas, chart, { width, height, scale = 1, theme, upd
   context.fillRect(0, 0, width, height);
 
   const records = visibleRecords();
-  const seriesValues = chart.series.flatMap((series) =>
+  const axisGroups = getChartAxisGroups(chart);
+  const plottedSeries = axisGroups.flatMap((axisGroup) => axisGroup.series);
+  const seriesValues = plottedSeries.flatMap((series) =>
     records
       .map((record) => record.values[series.key])
       .filter((value) => Number.isFinite(value)),
@@ -733,19 +1276,49 @@ function renderChartCanvas(canvas, chart, { width, height, scale = 1, theme, upd
 
   const plot = {
     left: 54,
-    right: width - 14,
+    right: width - (axisGroups.length > 1 ? 54 : 14),
     top: 12,
     bottom: height - 28,
   };
   const times = records.map((record) => record.timestamp.getTime());
   const xMin = Math.min(...times);
   const xMax = Math.max(...times);
-  const yRange = getYRange(seriesValues, chart.minZero, getDefaultYRange(chart));
+  const leftAxisGroup = axisGroups.find((axisGroup) => axisGroup.id === "left") || axisGroups[0];
+  const rightAxisGroup = axisGroups.find((axisGroup) => axisGroup.id === "right");
+  const axisRanges = Object.fromEntries(
+    axisGroups
+      .map((axisGroup) => {
+        const values = getAxisValues(axisGroup, records);
 
-  drawGrid(context, plot, width, height, xMin, xMax, yRange, theme);
+        if (values.length === 0) {
+          return [axisGroup.id, null];
+        }
 
-  chart.series.forEach((series) => {
-    drawSeries(context, records, series, plot, xMin, xMax, yRange, chart.marker, theme);
+        return [
+          axisGroup.id,
+          getYRange(values, axisGroup.minZero, getDefaultYRangeForSeries(axisGroup.series)),
+        ];
+      })
+      .filter(([, range]) => range),
+  );
+  const leftRange = axisRanges.left || Object.values(axisRanges)[0];
+  const rightRange = axisRanges.right || null;
+  const leftLabel = leftAxisGroup?.unitLabel || "";
+  const rightLabel = rightRange ? rightAxisGroup?.unitLabel || "" : "";
+
+  if (leftLabel || rightLabel) {
+    plot.top = 24;
+  }
+
+  drawGrid(context, plot, width, height, xMin, xMax, leftRange, theme, {
+    rightRange,
+    leftLabel,
+    rightLabel,
+  });
+
+  plottedSeries.forEach((series) => {
+    const yRange = axisRanges[series.axis] || leftRange;
+    drawSeries(context, records, series, plot, xMin, xMax, yRange, series.marker, theme);
   });
 
   if (updateStats) {
@@ -822,12 +1395,12 @@ function drawExportCard(context, card, gridRect, padding, headerHeight) {
   const width = rect.width;
   const height = rect.height;
   const canvas = card.querySelector("canvas");
-  const chart = getAllCharts()[card.dataset.chartCard];
+  const chart = getRenderableChartForCard(card);
   const title = card.querySelector("h2")?.textContent?.trim() || "";
   const stats = card.querySelector("[data-chart-stats]")?.textContent?.trim() || "";
   const legendItems = [...card.querySelectorAll(".chart-legend span")].map((item) => ({
     color: item.querySelector("i")?.style.getPropertyValue("--swatch") || "#17202a",
-    label: item.textContent.trim(),
+    label: item.dataset.exportLabel || item.textContent.trim(),
   }));
   const canvasTop = y + (canvas.getBoundingClientRect().top - rect.top);
   const canvasHeight = height - (canvasTop - y) - 8;
@@ -903,6 +1476,157 @@ function makeFileTimestamp() {
     .slice(0, 19);
 }
 
+function getRenderableChartForCard(card) {
+  if (!card || card.dataset.combinedInto) {
+    return null;
+  }
+
+  const baseCharts = getAllCharts();
+  const chartKey = card.dataset.chartCard;
+  const baseChart = baseCharts[chartKey];
+
+  if (!baseChart) {
+    return null;
+  }
+
+  const groupKeys = getChartGroupKeys(chartKey)
+    .filter((key) => baseCharts[key] && isChartEnabled(key));
+
+  if (groupKeys.length > 1) {
+    return makeCombinedChart(chartKey, groupKeys, baseCharts);
+  }
+
+  return makeRenderableSourceChart(chartKey, baseChart);
+}
+
+function makeCombinedChart(rootKey, groupKeys, baseCharts) {
+  const sources = groupKeys
+    .map((key) => makeChartSource(key, baseCharts[key]))
+    .filter(Boolean);
+  const rootSource = sources.find((source) => source.key === rootKey) || sources[0];
+  const combinedSeries = sources.flatMap((source) => source.series);
+  const leftUnitKey = combinedSeries[0]?.unitKey || "";
+  const rightUnitKey = combinedSeries.find((series) => series.unitKey !== leftUnitKey)?.unitKey || "";
+  const leftSeries = combinedSeries.filter((series) => !rightUnitKey || series.unitKey === leftUnitKey);
+  const rightSeries = rightUnitKey
+    ? combinedSeries.filter((series) => series.unitKey !== leftUnitKey)
+    : [];
+  const axisGroups = [
+    makeAxisGroup("left", leftSeries),
+    ...(rightSeries.length > 0 ? [makeAxisGroup("right", rightSeries)] : []),
+  ];
+
+  return {
+    ...rootSource.chart,
+    key: rootKey,
+    canvas: rootSource.chart.canvas,
+    stats: rootSource.chart.stats,
+    title: sources.map((source) => source.title).join(" + "),
+    unit: axisGroups.map((axisGroup) => axisGroup.unitLabel).filter(Boolean).join(" / "),
+    isCombined: true,
+    sources,
+    series: axisGroups.flatMap((axisGroup) => axisGroup.series),
+    axisGroups,
+  };
+}
+
+function makeRenderableSourceChart(chartKey, chart) {
+  const source = makeChartSource(chartKey, chart);
+
+  return {
+    ...chart,
+    key: chartKey,
+    title: source.title,
+    unit: source.unit,
+    sources: [source],
+    series: source.series,
+    axisGroups: [makeAxisGroup("left", source.series)],
+  };
+}
+
+function makeChartSource(chartKey, chart) {
+  if (!chart) {
+    return null;
+  }
+
+  const card = getChartCard(chartKey);
+  const title = chart.title || card?.dataset.chartBaseTitle || formatFieldLabel(chartKey);
+  const fallbackUnit = chart.unit || card?.dataset.chartBaseUnit || "";
+  const series = chart.series.map((seriesItem) => {
+    const unit = getSeriesUnit(seriesItem, chart, fallbackUnit);
+
+    return {
+      ...seriesItem,
+      sourceKey: chartKey,
+      sourceTitle: title,
+      sourceSeriesCount: chart.series.length,
+      marker: seriesItem.marker ?? chart.marker,
+      minZero: Boolean(seriesItem.minZero ?? chart.minZero),
+      unitLabel: unit.label,
+      unitKey: unit.key,
+    };
+  });
+
+  return {
+    key: chartKey,
+    chart,
+    title,
+    unit: getAxisUnitLabel(series) || fallbackUnit,
+    series,
+  };
+}
+
+function makeAxisGroup(id, series) {
+  return {
+    id,
+    unitLabel: getAxisUnitLabel(series),
+    minZero: series.some((item) => item.minZero),
+    series: series.map((item) => ({ ...item, axis: id })),
+  };
+}
+
+function getChartAxisGroups(chart) {
+  if (chart.axisGroups?.length) {
+    return chart.axisGroups;
+  }
+
+  return [makeAxisGroup("left", chart.series)];
+}
+
+function getAxisValues(axisGroup, records) {
+  return axisGroup.series.flatMap((series) =>
+    records
+      .map((record) => record.values[series.key])
+      .filter((value) => Number.isFinite(value)),
+  );
+}
+
+function getSeriesUnit(series, chart, fallbackUnit = "") {
+  const label = resolveColumnForSeries(series.key)?.unit || chart.unit || fallbackUnit || "";
+
+  return {
+    label,
+    key: normalizeUnit(label),
+  };
+}
+
+function getAxisUnitLabel(series) {
+  const labels = uniqueStrings(series.map((item) => item.unitLabel).filter(Boolean));
+
+  if (labels.length === 0) {
+    return "";
+  }
+
+  return labels.length === 1 ? labels[0] : "mixed units";
+}
+
+function normalizeUnit(unit) {
+  return String(unit || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
 function visibleRecords() {
   if (state.records.length === 0) {
     return state.records;
@@ -913,7 +1637,11 @@ function visibleRecords() {
 }
 
 function getDefaultYRange(chart) {
-  const ranges = chart.series
+  return getDefaultYRangeForSeries(chart.series);
+}
+
+function getDefaultYRangeForSeries(seriesItems) {
+  const ranges = seriesItems
     .map((series) => resolveColumnForSeries(series.key)?.defaultAxisRange)
     .filter(isValidAxisRange);
 
@@ -1001,11 +1729,24 @@ function getYRange(values, minZero = false, defaultRange = null) {
   };
 }
 
-function drawGrid(context, plot, width, height, xMin, xMax, yRange, theme) {
+function drawGrid(
+  context,
+  plot,
+  width,
+  height,
+  xMin,
+  xMax,
+  yRange,
+  theme,
+  { rightRange = null, leftLabel = "", rightLabel = "" } = {},
+) {
   context.strokeStyle = theme.grid;
   context.lineWidth = 1;
   context.font = "11px Arial, Helvetica, sans-serif";
   context.fillStyle = theme.text;
+  context.textAlign = "left";
+
+  drawAxisUnitLabels(context, plot, width, theme, { leftLabel, rightLabel });
 
   for (let step = 0; step <= 4; step += 1) {
     const ratio = step / 4;
@@ -1017,6 +1758,13 @@ function drawGrid(context, plot, width, height, xMin, xMax, yRange, theme) {
 
     const value = yRange.max - (yRange.max - yRange.min) * ratio;
     context.fillText(formatNumber(value), 8, y + 4);
+
+    if (rightRange) {
+      const rightValue = rightRange.max - (rightRange.max - rightRange.min) * ratio;
+      context.textAlign = "right";
+      context.fillText(formatNumber(rightValue), width - 8, y + 4);
+      context.textAlign = "left";
+    }
   }
 
   for (let step = 0; step <= 4; step += 1) {
@@ -1028,8 +1776,44 @@ function drawGrid(context, plot, width, height, xMin, xMax, yRange, theme) {
     context.stroke();
 
     const time = new Date(xMin + (xMax - xMin) * ratio);
-    context.fillText(formatTime(time), Math.min(x, width - 58), height - 9);
+    drawCenteredXAxisLabel(context, formatTime(time), x, width, height - 9);
   }
+
+  context.textAlign = "left";
+}
+
+function drawCenteredXAxisLabel(context, label, x, width, y) {
+  const labelWidth = context.measureText(label).width;
+  const padding = 8;
+  const halfWidth = labelWidth / 2;
+  const centerX = clampNumber(x, padding + halfWidth, width - padding - halfWidth, x);
+
+  context.textAlign = "center";
+  context.fillText(label, centerX, y);
+  context.textAlign = "left";
+}
+
+function drawAxisUnitLabels(context, plot, width, theme, { leftLabel = "", rightLabel = "" } = {}) {
+  if (!leftLabel && !rightLabel) {
+    return;
+  }
+
+  context.save();
+  context.fillStyle = theme.text;
+  context.font = "700 10px Arial, Helvetica, sans-serif";
+  context.textBaseline = "alphabetic";
+
+  if (leftLabel) {
+    context.textAlign = "left";
+    context.fillText(leftLabel, 8, Math.max(10, plot.top - 9));
+  }
+
+  if (rightLabel) {
+    context.textAlign = "right";
+    context.fillText(rightLabel, width - 8, Math.max(10, plot.top - 9));
+  }
+
+  context.restore();
 }
 
 function drawSeries(context, records, series, plot, xMin, xMax, yRange, marker, theme) {
@@ -1124,6 +1908,15 @@ function cssVar(name, fallback) {
 }
 
 function updateChartStats(chart, records) {
+  if (chart.isCombined) {
+    const axisSummary = getChartAxisGroups(chart)
+      .map((axisGroup) => `${axisGroup.id === "left" ? "L" : "R"} ${axisGroup.unitLabel || "axis"}`)
+      .join(" | ");
+    query(`[data-chart-stats="${chart.stats}"]`).textContent =
+      `${chart.sources.length} plots${axisSummary ? ` | ${axisSummary}` : ""}`;
+    return;
+  }
+
   const values = chart.series.flatMap((series) =>
     records
       .map((record) => record.values[series.key])

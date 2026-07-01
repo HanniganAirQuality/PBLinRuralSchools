@@ -21,12 +21,6 @@
         <p class="eyebrow">AQIQ live viewer</p>
         <h1 id="page-title">YPOD Live Visualization</h1>
       </div>
-
-      <div class="schema-card" aria-live="polite">
-        <span class="schema-label">YAML</span>
-        <a data-schema-link href="https://github.com/HanniganAirQuality/All-POD-YAMLs/blob/main/YPOD_HeaderLog.yaml">YPOD_HeaderLog.yaml</a>
-        <span data-schema-status>Loading Serial_Calibrate schema...</span>
-      </div>
     </section>
 
     <section class="live-controls" aria-label="Live viewer controls">
@@ -50,6 +44,12 @@
           <select id="yaml-section" data-yaml-section></select>
         </label>
 
+        <div class="schema-card advanced-schema-card" aria-live="polite">
+          <span class="schema-label">YAML source</span>
+          <a data-schema-link href="https://github.com/HanniganAirQuality/All-POD-YAMLs/blob/main/YPOD_HeaderLog.yaml">YPOD_HeaderLog.yaml</a>
+          <span data-schema-status>Loading Serial_Calibrate schema...</span>
+        </div>
+
         <label class="control-group" for="timeline-minutes">
           <span>Timeline size (min)</span>
           <input id="timeline-minutes" type="number" min="0.25" max="1440" step="0.25" value="5" data-timeline-minutes>
@@ -69,7 +69,7 @@
           <strong data-row-count>0</strong>
         </div>
         <div class="serial-panel">
-          <span>Last timestamp</span>
+          <span>Last plot time</span>
           <strong data-last-time>--</strong>
         </div>
         <div class="serial-panel raw-line-panel">

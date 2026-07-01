@@ -6,7 +6,7 @@
   <title>Fire-IQ Live Viewer | HAQ Lab PBL</title>
   <link rel="stylesheet" href="../../../assets/css/main.css">
 </head>
-<body class="tool-page theme-fire-iq">
+<body class="tool-page live-viewer-page theme-fire-iq">
   <header class="site-header">
     <a class="brand" href="../../../">HAQ Lab PBL</a>
     <nav class="site-nav" aria-label="Tool navigation">
@@ -15,14 +15,167 @@
     </nav>
   </header>
 
-  <main class="page-shell">
-    <section class="tool-workspace" data-tool-placeholder data-program="Fire-IQ" data-tool-name="Live Viewer">
-      <div class="placeholder-panel">
-        <p class="eyebrow">Fire-IQ</p>
-        <h1>Live Viewer Placeholder</h1>
-        <p>Static page reserved for the future Fire-IQ Web Serial live viewer.</p>
-        <div class="placeholder-status" data-placeholder-status>Live Viewer module pending.</div>
+  <main class="live-shell fire-live-shell" data-fire-iq-live-viewer>
+    <section class="live-header" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">Fire-IQ live viewer</p>
+        <h1 id="page-title">Dual YPOD Live Visualization</h1>
       </div>
+    </section>
+
+    <section class="live-controls fire-pod-controls" aria-label="Live viewer controls">
+      <article class="pod-control-card">
+        <input id="pod-1-id" class="pod-label-input" type="text" placeholder="POD 1 label" aria-label="POD 1 label" data-pod-id="pod1">
+        <button class="primary-action" type="button" data-connect-pod="pod1">Connect</button>
+        <button type="button" data-disconnect-pod="pod1" disabled>Disconnect</button>
+        <div class="connection-status" data-pod-status="pod1" aria-live="polite">Idle</div>
+      </article>
+
+      <article class="pod-control-card">
+        <input id="pod-2-id" class="pod-label-input" type="text" placeholder="POD 2 label" aria-label="POD 2 label" data-pod-id="pod2">
+        <button class="primary-action" type="button" data-connect-pod="pod2">Connect</button>
+        <button type="button" data-disconnect-pod="pod2" disabled>Disconnect</button>
+        <div class="connection-status" data-pod-status="pod2" aria-live="polite">Idle</div>
+      </article>
+
+      <button type="button" data-reset>Reset</button>
+    </section>
+
+    <details class="advanced-settings">
+      <summary>Advanced settings</summary>
+      <div class="advanced-grid fire-advanced-grid">
+        <label class="control-group" for="yaml-version">
+          <span>YAML version</span>
+          <select id="yaml-version" data-yaml-version></select>
+        </label>
+
+        <label class="control-group" for="yaml-section">
+          <span>YAML type</span>
+          <select id="yaml-section" data-yaml-section></select>
+        </label>
+
+        <div class="schema-card advanced-schema-card" aria-live="polite">
+          <span class="schema-label">YAML source</span>
+          <a data-schema-link href="https://github.com/HanniganAirQuality/All-POD-YAMLs/blob/main/YPOD_HeaderLog.yaml">YPOD_HeaderLog.yaml</a>
+          <span data-schema-status>Loading Serial_Calibrate schema...</span>
+        </div>
+
+        <label class="control-group" for="timeline-minutes">
+          <span>Timeline size (min)</span>
+          <input id="timeline-minutes" type="number" min="0.25" max="1440" step="0.25" value="5" data-timeline-minutes>
+        </label>
+      </div>
+
+      <section class="serial-readout fire-serial-readout" aria-label="Serial readout">
+        <div class="serial-panel">
+          <span>POD 1 rows</span>
+          <strong data-row-count="pod1">0</strong>
+        </div>
+        <div class="serial-panel">
+          <span>POD 1 last plot time</span>
+          <strong data-last-time="pod1">--</strong>
+        </div>
+        <div class="serial-panel">
+          <span>POD 2 rows</span>
+          <strong data-row-count="pod2">0</strong>
+        </div>
+        <div class="serial-panel">
+          <span>POD 2 last plot time</span>
+          <strong data-last-time="pod2">--</strong>
+        </div>
+
+        <div class="serial-panel raw-line-panel">
+          <span>POD 1 latest row</span>
+          <code data-latest-line="pod1">--</code>
+        </div>
+        <div class="serial-panel raw-line-panel">
+          <span>POD 2 latest row</span>
+          <code data-latest-line="pod2">--</code>
+        </div>
+        <div class="serial-panel debug-panel">
+          <span>POD 1 debug values</span>
+          <div class="debug-value-grid" data-debug-values="pod1"></div>
+        </div>
+        <div class="serial-panel debug-panel">
+          <span>POD 2 debug values</span>
+          <div class="debug-value-grid" data-debug-values="pod2"></div>
+        </div>
+      </section>
+    </details>
+
+    <section class="plot-settings basic-plot-settings" aria-label="Basic plot selection">
+      <fieldset class="plot-toggles">
+        <legend>Plots shown</legend>
+        <label><input type="checkbox" data-plot-toggle value="co" checked> CO</label>
+        <label><input type="checkbox" data-plot-toggle value="co2" checked> CO2</label>
+        <label><input type="checkbox" data-plot-toggle value="pm25" checked> PM2.5</label>
+      </fieldset>
+    </section>
+
+    <section class="metric-strip" aria-label="Latest readings">
+      <article class="metric-card">
+        <span>POD 1 CO</span>
+        <strong data-metric="pod1-co">--</strong>
+      </article>
+      <article class="metric-card">
+        <span>POD 1 CO2</span>
+        <strong data-metric="pod1-co2">--</strong>
+      </article>
+      <article class="metric-card">
+        <span>POD 1 PM2.5</span>
+        <strong data-metric="pod1-pm25">--</strong>
+      </article>
+      <article class="metric-card">
+        <span>POD 2 CO</span>
+        <strong data-metric="pod2-co">--</strong>
+      </article>
+      <article class="metric-card">
+        <span>POD 2 CO2</span>
+        <strong data-metric="pod2-co2">--</strong>
+      </article>
+      <article class="metric-card">
+        <span>POD 2 PM2.5</span>
+        <strong data-metric="pod2-pm25">--</strong>
+      </article>
+    </section>
+
+    <section class="chart-grid fire-chart-grid" aria-label="Live Fire-IQ charts">
+      <article class="chart-card" data-chart-card="co">
+        <div class="chart-heading">
+          <div>
+            <h2>Carbon Monoxide <span>[ppm]</span></h2>
+          </div>
+          <span data-chart-stats="co">--</span>
+        </div>
+        <div class="chart-legend" data-chart-legend="co"></div>
+        <canvas id="chart-co" data-chart="co"></canvas>
+      </article>
+
+      <article class="chart-card" data-chart-card="co2">
+        <div class="chart-heading">
+          <div>
+            <h2>Carbon Dioxide <span>[ppm]</span></h2>
+          </div>
+          <span data-chart-stats="co2">--</span>
+        </div>
+        <div class="chart-legend" data-chart-legend="co2"></div>
+        <canvas id="chart-co2" data-chart="co2"></canvas>
+      </article>
+
+      <article class="chart-card" data-chart-card="pm25">
+        <div class="chart-heading">
+          <div>
+            <h2>Particulate Matter 2.5 <span>[ug/m^3]</span></h2>
+          </div>
+          <span data-chart-stats="pm25">--</span>
+        </div>
+        <div class="chart-legend" data-chart-legend="pm25"></div>
+        <canvas id="chart-pm25" data-chart="pm25"></canvas>
+      </article>
+    </section>
+
+    <section class="export-actions" aria-label="Export graph view">
+      <button type="button" data-export-png>Export graph view PNG</button>
     </section>
   </main>
 
@@ -32,6 +185,6 @@
   </footer>
 
   <script type="module" src="../../../assets/js/core/site.js"></script>
-  <script type="module" src="../../../assets/js/viewers/live-viewer.js"></script>
+  <script type="module" src="../../../assets/js/viewers/fireiq-live-viewer.js"></script>
 </body>
 </html>
