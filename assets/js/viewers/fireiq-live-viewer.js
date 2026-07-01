@@ -16,6 +16,8 @@ const MAX_TIMELINE_MINUTES = 1440;
 const MAX_RECORDS_PER_POD = 2400;
 const MIN_CHART_WIDTH = 220;
 const MIN_CHART_HEIGHT = 104;
+const POINT_RADIUS = 2.3;
+const HOVER_RADIUS = 10;
 const EXPORT_CHART_THEME = {
   background: "#ffffff",
   grid: "#d9dee6",
@@ -78,6 +80,7 @@ const state = {
   schema: null,
   displayWindowMs: DEFAULT_TIMELINE_MINUTES * 60 * 1000,
   renderQueued: false,
+  hoverPoint: null,
   pods: {
     pod1: makePodState("POD 1"),
     pod2: makePodState("POD 2"),
@@ -143,9 +146,16 @@ function bindControls() {
   app.querySelectorAll("[data-plot-toggle]").forEach((toggle) => {
     toggle.addEventListener("change", handlePlotToggle);
   });
+  bindChartHover();
   window.addEventListener("resize", queueRender);
   const colorScheme = window.matchMedia?.("(prefers-color-scheme: dark)");
   colorScheme?.addEventListener?.("change", queueRender);
+}
+
+function bindChartHover() {
+  const grid = query(".chart-grid");
+  grid.addEventListener("pointermove", handleChartPointerMove);
+  grid.addEventListener("pointerleave", clearChartHover);
 }
 
 async function loadYamlSettings() {
@@ -313,6 +323,66 @@ function handlePlotToggle() {
     card.setAttribute("aria-hidden", String(hidden));
   });
   queueRender();
+}
+
+function handleChartPointerMove(event) {
+  const canvas = event.target instanceof Element
+    ? event.target.closest("canvas[data-chart]")
+    : null;
+
+  if (!canvas) {
+    clearChartHover();
+    return;
+  }
+
+  const card = canvas.closest("[data-chart-card]");
+  const chart = CHARTS[card?.dataset.chartCard];
+
+  if (!card || !chart) {
+    clearChartHover();
+    return;
+  }
+
+  const rect = canvas.getBoundingClientRect();
+  const pointer = {
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top,
+  };
+  const hoverPoint = findNearestChartPoint(canvas, chart, pointer);
+  const previousCanvasId = state.hoverPoint?.canvasId || "";
+
+  state.hoverPoint = hoverPoint ? { ...hoverPoint, canvasId: canvas.id } : null;
+  canvas.style.cursor = hoverPoint ? "crosshair" : "";
+  renderChart(card, chart);
+
+  if (previousCanvasId && previousCanvasId !== canvas.id) {
+    renderCanvasById(previousCanvasId);
+  }
+}
+
+function clearChartHover() {
+  const previousCanvasId = state.hoverPoint?.canvasId || "";
+  state.hoverPoint = null;
+
+  query(".chart-grid")
+    .querySelectorAll("canvas")
+    .forEach((canvas) => {
+      canvas.style.cursor = "";
+    });
+
+  if (previousCanvasId) {
+    renderCanvasById(previousCanvasId);
+  }
+}
+
+function renderCanvasById(canvasId) {
+  const canvas = query(".chart-grid").querySelector(`#${canvasId}`);
+  const card = canvas?.closest("[data-chart-card]");
+  const chart = CHARTS[card?.dataset.chartCard];
+
+  if (card && chart && !card.hidden) {
+    renderChart(card, chart);
+  }
 }
 
 function handleSerialLine(podKey, line) {
@@ -525,6 +595,7 @@ function updateMaxima(podKey, record) {
 }
 
 function resetData() {
+  state.hoverPoint = null;
   POD_KEYS.forEach((podKey) => {
     const pod = state.pods[podKey];
     pod.records = [];
@@ -655,10 +726,18 @@ function renderChart(card, chart) {
     scale: window.devicePixelRatio || 1,
     theme: getLiveChartTheme(),
     updateStats: true,
+    hoverPoint: state.hoverPoint?.canvasId === canvas.id ? state.hoverPoint : null,
   });
 }
 
-function renderChartCanvas(canvas, chart, { width, height, scale = 1, theme, updateStats = false }) {
+function renderChartCanvas(canvas, chart, {
+  width,
+  height,
+  scale = 1,
+  theme,
+  updateStats = false,
+  hoverPoint = null,
+}) {
   const context = canvas.getContext("2d");
   const chartUnit = getChartUnit(chart);
 
@@ -710,9 +789,75 @@ function renderChartCanvas(canvas, chart, { width, height, scale = 1, theme, upd
     drawSeries(context, recordsByPod[series.podKey], series, plot, xMin, xMax, yRange, theme);
   });
 
+  if (hoverPoint) {
+    drawHoverTooltip(context, hoverPoint, width, height, theme);
+  }
+
   if (updateStats) {
     updateChartStats(chart);
   }
+}
+
+function findNearestChartPoint(canvas, chart, pointer) {
+  const rect = canvas.getBoundingClientRect();
+  const width = Math.max(MIN_CHART_WIDTH, rect.width);
+  const height = Math.max(MIN_CHART_HEIGHT, rect.height);
+  const chartUnit = getChartUnit(chart);
+  const recordsByPod = visibleRecordsByPod();
+  const seriesValues = chart.series.flatMap((series) =>
+    recordsByPod[series.podKey]
+      .map((record) => record.values[series.key])
+      .filter((value) => Number.isFinite(value)),
+  );
+  const visibleRecords = POD_KEYS.flatMap((podKey) => recordsByPod[podKey]);
+
+  if (visibleRecords.length === 0 || seriesValues.length === 0) {
+    return null;
+  }
+
+  const plot = {
+    left: 54,
+    right: width - 14,
+    top: chartUnit ? 24 : 12,
+    bottom: height - 28,
+  };
+  const times = visibleRecords.map((record) => record.timestamp.getTime());
+  let xMin = Math.min(...times);
+  let xMax = Math.max(...times);
+
+  if (xMin === xMax) {
+    xMin -= 30000;
+    xMax += 30000;
+  }
+
+  const yRange = getYRange(seriesValues, chart.minZero);
+  const points = chart.series.flatMap((series) =>
+    recordsByPod[series.podKey]
+      .map((record) => {
+        const value = record.values[series.key];
+        const column = resolveColumnForField(series.key);
+
+        if (!Number.isFinite(value)) {
+          return null;
+        }
+
+        return {
+          x: scaleValue(record.timestamp.getTime(), xMin, xMax, plot.left, plot.right),
+          y: scaleValue(value, yRange.min, yRange.max, plot.bottom, plot.top),
+          value,
+          displayValue: column && record.fields?.[column.name] !== ""
+            ? record.fields?.[column.name]
+            : formatExactNumber(value),
+          timestamp: record.timestamp,
+          label: `${getPodDisplayName(series.podKey)} ${chart.title}`,
+          unit: chartUnit,
+          color: getSeriesColor(series, getLiveChartTheme()),
+        };
+      })
+      .filter(Boolean),
+  );
+
+  return nearestPoint(points, pointer);
 }
 
 function visibleRecordsByPod() {
@@ -834,13 +979,71 @@ function drawSeries(context, records, series, plot, xMin, xMax, yRange, theme) {
 
   context.stroke();
   context.fillStyle = color;
-  usableRecords.slice(-80).forEach((record) => {
+  usableRecords.forEach((record) => {
     const x = scaleValue(record.timestamp.getTime(), xMin, xMax, plot.left, plot.right);
     const y = scaleValue(record.values[series.key], yRange.min, yRange.max, plot.bottom, plot.top);
     context.beginPath();
-    context.arc(x, y, 2, 0, Math.PI * 2);
+    context.arc(x, y, POINT_RADIUS, 0, Math.PI * 2);
     context.fill();
   });
+}
+
+function nearestPoint(points, pointer) {
+  let nearest = null;
+  let nearestDistance = HOVER_RADIUS;
+
+  points.forEach((point) => {
+    const distance = Math.hypot(point.x - pointer.x, point.y - pointer.y);
+
+    if (distance <= nearestDistance) {
+      nearest = point;
+      nearestDistance = distance;
+    }
+  });
+
+  return nearest;
+}
+
+function drawHoverTooltip(context, point, width, height, theme) {
+  const lines = [
+    point.label,
+    `${point.displayValue || formatExactNumber(point.value)}${point.unit ? ` ${point.unit}` : ""}`,
+    formatTime(point.timestamp),
+  ];
+  const padding = 8;
+  const lineHeight = 15;
+  context.save();
+  context.font = "12px Arial, Helvetica, sans-serif";
+  const tooltipWidth = Math.ceil(Math.max(...lines.map((line) => context.measureText(line).width)) + padding * 2);
+  const tooltipHeight = padding * 2 + lineHeight * lines.length;
+  const x = clampNumber(point.x + 12, 4, width - tooltipWidth - 4, 4);
+  const y = clampNumber(point.y - tooltipHeight - 12, 4, height - tooltipHeight - 4, 4);
+
+  context.strokeStyle = point.color;
+  context.lineWidth = 2;
+  context.fillStyle = theme.background;
+  context.beginPath();
+  context.arc(point.x, point.y, POINT_RADIUS + 3, 0, Math.PI * 2);
+  context.fill();
+  context.stroke();
+
+  context.fillStyle = "rgba(17, 24, 39, 0.92)";
+  context.strokeStyle = "rgba(255, 255, 255, 0.22)";
+  context.lineWidth = 1;
+  roundRect(context, x, y, tooltipWidth, tooltipHeight, 6);
+  context.fill();
+  context.stroke();
+
+  lines.forEach((line, index) => {
+    context.fillStyle = index === 0 ? "#ffffff" : "#d1d5db";
+    context.font = `${index === 0 ? "700 " : ""}12px Arial, Helvetica, sans-serif`;
+    context.fillText(line, x + padding, y + padding + 11 + index * lineHeight);
+  });
+  context.restore();
+}
+
+function formatExactNumber(value) {
+  return Number.isFinite(value) ? String(value) : "--";
 }
 
 function drawEmptyChart(context, width, theme) {
