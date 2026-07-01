@@ -645,7 +645,7 @@ input {
 .chart-grid {
   height: calc(100dvh - 1rem);
   min-height: 0;
-  overflow: auto;
+  overflow: visible;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: repeat(3, minmax(7rem, 1fr));

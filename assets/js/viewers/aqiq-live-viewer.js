@@ -554,7 +554,7 @@ function syncColumnChartCards() {
 
   app.querySelectorAll("[data-dynamic-chart-card]").forEach((card) => {
     if (!selectedKeys.has(card.dataset.chartCard)) {
-      removeChartFromGroups(card.dataset.chartCard, { reveal: false, announce: false });
+      removeChartFromGroups(card.dataset.chartCard, { reveal: false });
       card.remove();
     }
   });
@@ -829,11 +829,10 @@ function combineChartCards(targetCard, draggedCard) {
   state.chartGroups[targetKey] = combinedKeys;
   applyChartGroupVisibility(targetKey);
   refreshChartCardDisplay(targetRootCard);
-  setStatus("Plots combined");
   return true;
 }
 
-function removeChartFromGroups(chartKey, { reveal = true, announce = true } = {}) {
+function removeChartFromGroups(chartKey, { reveal = true } = {}) {
   const rootKey = getRootChartKey(chartKey);
   const groupKeys = state.chartGroups[rootKey];
 
@@ -862,10 +861,6 @@ function removeChartFromGroups(chartKey, { reveal = true, announce = true } = {}
   const currentRootCard = getChartCard(getRootChartKey(rootKey));
   if (currentRootCard) {
     refreshChartCardDisplay(currentRootCard);
-  }
-
-  if (announce) {
-    setStatus("Plot split out");
   }
 
   return true;
@@ -900,8 +895,6 @@ function splitChartGroup(chartKey) {
     applyChartCardVisibility(card);
     refreshChartCardDisplay(card);
   });
-
-  setStatus("Plots split");
   return true;
 }
 
