@@ -4,13 +4,19 @@ export const YPOD_HEADER_LOG_URL =
 export const YPOD_HEADER_LOG_PAGE =
   "https://github.com/HanniganAirQuality/All-POD-YAMLs/blob/main/YPOD_HeaderLog.yaml";
 
+export const CURRENT_YPOD_VERSION = "YPOD_V4_2_0";
+
 const FALLBACK_SCHEMA = {
-  version: "YPOD_V4_1_0",
-  section: "Serial_Calibrate",
+  version: "YPOD_V4_2_0",
+  section: "Calibrated",
   sourceUrl: YPOD_HEADER_LOG_URL,
   htmlUrl: YPOD_HEADER_LOG_PAGE,
   columns: [
     { name: "DateTime", unit: "timestamp" },
+    { name: "EAST_LONGITUDE", unit: "NA" },
+    { name: "NORTH_LATITUDE", unit: "NA" },
+    { name: "YPODID", unit: "ID" },
+    { name: "Firmware_Version", unit: "NA" },
     { name: "BME180_Temperature", unit: "Celsius", defaultAxisRange: [-20, 50] },
     { name: "BME180_Pressure", unit: "millibar", defaultAxisRange: [900, 1100] },
     { name: "SHT25_Temperature", unit: "Celsius", defaultAxisRange: [-20, 50] },
@@ -19,7 +25,7 @@ const FALLBACK_SCHEMA = {
     { name: "Fig2600_LightVOC", unit: "ADU", defaultAxisRange: [0, 10000] },
     { name: "Fig2602_HeavyVOC", unit: "ADU", defaultAxisRange: [0, 10000] },
     { name: "Ozone", unit: "ADU", defaultAxisRange: [0, 1000] },
-    { name: "Calibrated_CO", unit: "ppm", defaultAxisRange: [0, 10000] },
+    { name: "Calibrated_CO", unit: "ppm", defaultAxisRange: [0, 1000] },
     { name: "CO_ch1", unit: "ADU", defaultAxisRange: [0, 10000] },
     { name: "CO_ch2", unit: "ADU", defaultAxisRange: [0, 10000] },
     { name: "CO2", unit: "ppm", defaultAxisRange: [0, 5000] },
@@ -29,7 +35,9 @@ const FALLBACK_SCHEMA = {
   ],
 };
 
-const DATA_SECTIONS = ["Serial_Calibrate", "Serial"];
+export const YPOD_SECTION_PREFERENCE = ["Calibrated", "Serial_Calibrate", "Uncalibrated", "Serial"];
+
+const DATA_SECTIONS = YPOD_SECTION_PREFERENCE;
 
 export async function loadYpodHeaderLogResource() {
   try {
@@ -78,6 +86,22 @@ export function parseYpodSchemaIndex(text) {
     .reverse();
 }
 
+export function getPreferredYpodSection(sections, previous = "") {
+  if (sections.includes(previous)) {
+    return previous;
+  }
+
+  return YPOD_SECTION_PREFERENCE.find((section) => sections.includes(section)) || sections[0] || "";
+}
+
+export function getPreferredYpodVersion(versions, previous = "") {
+  if (versions.includes(previous)) {
+    return previous;
+  }
+
+  return versions.includes(CURRENT_YPOD_VERSION) ? CURRENT_YPOD_VERSION : versions[0] || "";
+}
+
 export function getYpodSectionSchema(resource, version, section) {
   if (!resource.text) {
     return {
@@ -86,14 +110,96 @@ export function getYpodSectionSchema(resource, version, section) {
     };
   }
 
-  const parsed = parseYpodSectionSchema(resource.text, version, section);
+  const cacheKey = `${version}:${section}`;
+  if (!resource.schemaCache) {
+    resource.schemaCache = new Map();
+  }
 
-  return {
+  if (resource.schemaCache.has(cacheKey)) {
+    return resource.schemaCache.get(cacheKey);
+  }
+
+  const parsed = parseYpodSectionSchema(resource.text, version, section);
+  const schema = {
     ...parsed,
     sourceUrl: resource.sourceUrl || YPOD_HEADER_LOG_URL,
     htmlUrl: resource.htmlUrl || YPOD_HEADER_LOG_PAGE,
     isFallback: false,
   };
+
+  resource.schemaCache.set(cacheKey, schema);
+  return schema;
+}
+
+export function normalizeYpodVersion(value) {
+  const raw = String(value || "").trim();
+
+  if (!raw) {
+    return "";
+  }
+
+  const match = raw.match(/(?:YPOD[\s_-]*)?V?\s*(\d+)[._-](\d+)[._-](\d+)/i);
+
+  if (!match) {
+    return "";
+  }
+
+  const major = Number(match[1]);
+  const minor = Number(match[2]);
+  const patch = Number(match[3]);
+
+  if (![major, minor, patch].every(Number.isFinite)) {
+    return "";
+  }
+
+  return `YPOD_V${major}_${minor}_${patch}`;
+}
+
+export function normalizeValuesForSchema(values, columns) {
+  if (values.length === columns.length) {
+    return values;
+  }
+
+  if (values.length === columns.length + 1 && values[values.length - 1] === "") {
+    return values.slice(0, -1);
+  }
+
+  return null;
+}
+
+export function resolveYpodSchemaForValues(resource, selectedSchema, values) {
+  if (!Array.isArray(values) || values.length === 0) {
+    return null;
+  }
+
+  const detectedVersion = getYpodFirmwareVersionFromValues(resource, values);
+  const selectedVersion = selectedSchema?.version || getPreferredYpodVersion(getListedYpodVersions(resource));
+  const version = detectedVersion || selectedVersion;
+
+  if (!version) {
+    return null;
+  }
+
+  const matches = getSchemaMatchesForValues(resource, version, values);
+  const previousSection = selectedSchema?.version === version ? selectedSchema.section : "";
+  const match = chooseSchemaMatch(matches, previousSection);
+
+  if (match) {
+    return match;
+  }
+
+  if (!detectedVersion && selectedSchema?.columns?.length) {
+    const normalizedValues = normalizeValuesForSchema(values, selectedSchema.columns);
+
+    if (normalizedValues) {
+      return {
+        schema: selectedSchema,
+        values: normalizedValues,
+      };
+    }
+  }
+
+  return null;
 }
 
 export function parseYpodSectionSchema(text, version, section) {
@@ -162,6 +268,87 @@ function findDataSections(lines, startIndex, endIndex) {
   }
 
   return DATA_SECTIONS.filter((section) => sections.includes(section));
+}
+
+function getListedYpodVersions(resource) {
+  return (resource?.index || []).map((item) => item.version);
+}
+
+function getYpodVersionRecord(resource, version) {
+  return (resource?.index || []).find((item) => item.version === version) || null;
+}
+
+function getSchemaMatchesForValues(resource, version, values) {
+  const record = getYpodVersionRecord(resource, version);
+
+  if (!record) {
+    return [];
+  }
+
+  return (record.sections || [])
+    .map((section) => getSafeYpodSectionSchema(resource, version, section))
+    .filter(Boolean)
+    .map((schema) => ({
+      schema,
+      values: normalizeValuesForSchema(values, schema.columns),
+    }))
+    .filter((match) => Boolean(match.values));
+}
+
+function chooseSchemaMatch(matches, previousSection = "") {
+  if (matches.length === 0) {
+    return null;
+  }
+
+  const section = getPreferredYpodSection(
+    matches.map((match) => match.schema.section),
+    previousSection,
+  );
+
+  return matches.find((match) => match.schema.section === section) || matches[0];
+}
+
+function getYpodFirmwareVersionFromValues(resource, values) {
+  const listedVersions = new Set(getListedYpodVersions(resource));
+
+  for (const item of resource?.index || []) {
+    for (const section of item.sections || []) {
+      const schema = getSafeYpodSectionSchema(resource, item.version, section);
+      const normalizedValues = schema ? normalizeValuesForSchema(values, schema.columns) : null;
+
+      if (!schema || !normalizedValues) {
+        continue;
+      }
+
+      const firmwareIndex = schema.columns.findIndex((column) =>
+        normalizeYamlFieldName(column.name) === "firmwareversion",
+      );
+
+      if (firmwareIndex === -1) {
+        continue;
+      }
+
+      const version = normalizeYpodVersion(normalizedValues[firmwareIndex]);
+
+      if (version && listedVersions.has(version)) {
+        return version;
+      }
+    }
+  }
+
+  return "";
+}
+
+function getSafeYpodSectionSchema(resource, version, section) {
+  try {
+    return getYpodSectionSchema(resource, version, section);
+  } catch {
+    return null;
+  }
+}
+
+function normalizeYamlFieldName(name) {
+  return String(name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
 function compareVersionRecords(a, b) {

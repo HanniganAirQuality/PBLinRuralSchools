@@ -2,8 +2,11 @@ import { showSafariLiveViewerWarning } from "../core/browser-warning.js";
 import { SerialLineReader } from "../core/serial-lines.js";
 import {
   YPOD_HEADER_LOG_PAGE,
+  getPreferredYpodSection,
+  getPreferredYpodVersion,
   getYpodSectionSchema,
   loadYpodHeaderLogResource,
+  resolveYpodSchemaForValues,
 } from "../core/ypod-yaml.js";
 
 const DEFAULT_BAUD_RATE = 9600;
@@ -41,7 +44,7 @@ const FIELD_ALIASES = {
   pm25: ["PM25_ENV", "PM2_5", "PM25", "PM2.5"],
   vocLight: ["Fig2600_LightVOC", "LightVOC", "lightVOC"],
   vocHeavy: ["Fig2602_HeavyVOC", "HeavyVOC", "heavyVOC"],
-  co: ["Calibrated_CO"],
+  co: ["CO", "Calibrated_CO"],
 };
 
 const CHARTS = {
@@ -179,7 +182,7 @@ function captureChartCardBaseTitle(card) {
 }
 
 async function loadYamlSettings() {
-  query("[data-schema-status]").textContent = "Loading Serial_Calibrate schema...";
+  query("[data-schema-status]").textContent = "Loading YPOD schema...";
   state.yamlResource = await loadYpodHeaderLogResource();
   populateVersionSelect();
   populateSectionSelect();
@@ -189,6 +192,7 @@ async function loadYamlSettings() {
 function populateVersionSelect() {
   const select = query("[data-yaml-version]");
   const versions = state.yamlResource?.index || [];
+  const previous = select.value;
   select.innerHTML = "";
 
   versions.forEach((item) => {
@@ -197,6 +201,15 @@ function populateVersionSelect() {
     option.textContent = item.version;
     select.append(option);
   });
+
+  const preferredVersion = getPreferredYpodVersion(
+    versions.map((item) => item.version),
+    previous,
+  );
+
+  if (preferredVersion) {
+    select.value = preferredVersion;
+  }
 }
 
 function populateSectionSelect() {
@@ -213,10 +226,10 @@ function populateSectionSelect() {
     select.append(option);
   });
 
-  if (sections.includes(previous)) {
-    select.value = previous;
-  } else if (sections.includes("Serial_Calibrate")) {
-    select.value = "Serial_Calibrate";
+  const preferredSection = getPreferredYpodSection(sections, previous);
+
+  if (preferredSection) {
+    select.value = preferredSection;
   }
 }
 
@@ -237,24 +250,40 @@ function handleTimelineSizeChange(event) {
 }
 
 function applySelectedSchema() {
-  const schemaLink = query("[data-schema-link]");
-  const schemaStatus = query("[data-schema-status]");
   const version = query("[data-yaml-version]").value;
   const section = query("[data-yaml-section]").value;
 
   try {
     const schema = getYpodSectionSchema(state.yamlResource, version, section);
-    state.schema = schema;
-    schemaLink.href = schema.htmlUrl || YPOD_HEADER_LOG_PAGE;
-
-    const suffix = schema.isFallback ? "fallback" : `${schema.columns.length} columns`;
-    schemaStatus.textContent = `${schema.version} ${schema.section}, ${suffix}`;
-    renderColumnToggles();
-    updateLegends();
-    resetData();
+    setActiveSchema(schema, { reset: true });
   } catch (error) {
-    schemaStatus.textContent = error.message || "Unable to load schema";
+    query("[data-schema-status]").textContent = error.message || "Unable to load schema";
   }
+}
+
+function setActiveSchema(schema, { reset = false } = {}) {
+  const schemaLink = query("[data-schema-link]");
+  const schemaStatus = query("[data-schema-status]");
+  state.schema = schema;
+  schemaLink.href = schema.htmlUrl || YPOD_HEADER_LOG_PAGE;
+
+  const suffix = schema.isFallback ? "fallback" : `${schema.columns.length} columns`;
+  schemaStatus.textContent = `${schema.version} ${schema.section}, ${suffix}`;
+  renderColumnToggles();
+  updateLegends();
+
+  if (reset) {
+    resetData();
+  }
+}
+
+function selectSchemaControls(schema) {
+  const versionSelect = query("[data-yaml-version]");
+  const sectionSelect = query("[data-yaml-section]");
+
+  versionSelect.value = schema.version;
+  populateSectionSelect();
+  sectionSelect.value = schema.section;
 }
 
 function renderColumnToggles() {
@@ -1028,16 +1057,24 @@ function markReadSuccessful() {
 }
 
 function mapSerialValues(values, rawLine, receivedAt = new Date()) {
-  const schema = state.schema;
-
-  if (!schema?.columns?.length || values.length === 0) {
+  if (!state.schema?.columns?.length || values.length === 0) {
     return null;
   }
 
-  const normalizedValues = normalizeValuesForSchema(values, schema.columns);
+  const resolved = resolveYpodSchemaForValues(state.yamlResource, state.schema, values);
 
-  if (!normalizedValues) {
+  if (!resolved) {
     return null;
+  }
+
+  const { schema, values: normalizedValues } = resolved;
+
+  if (
+    schema.version !== state.schema?.version ||
+    schema.section !== state.schema?.section
+  ) {
+    selectSchemaControls(schema);
+    setActiveSchema(schema, { reset: false });
   }
 
   const fields = {};
@@ -1069,18 +1106,6 @@ function mapSerialValues(values, rawLine, receivedAt = new Date()) {
       ...numericValues,
     },
   };
-}
-
-function normalizeValuesForSchema(values, columns) {
-  if (values.length === columns.length) {
-    return values;
-  }
-
-  if (values.length === columns.length + 1 && values[values.length - 1] === "") {
-    return values.slice(0, -1);
-  }
-
-  return null;
 }
 
 function parseCsvLine(line) {

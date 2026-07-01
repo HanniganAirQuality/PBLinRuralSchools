@@ -49,9 +49,9 @@ pbl.haq-lab.github.io/
 
 ## Live Viewer
 
-The AQIQ live viewer is a static Web Serial application. By default, it uses 9600 baud, loads the latest `YPOD_*` entry from `YPOD_HeaderLog.yaml` in the `HanniganAirQuality/All-POD-YAMLs` repository, and parses incoming CSV rows using that version's `Serial_Calibrate` column order. Advanced settings allow selecting a specific YAML version, YAML data section, timeline size, and visible plots.
+The AQIQ live viewer is a static Web Serial application. By default, it uses 9600 baud, loads the latest `YPOD_*` entry from `YPOD_HeaderLog.yaml` in the `HanniganAirQuality/All-POD-YAMLs` repository, and parses incoming CSV rows using that version's preferred live-data section. Rows with a `Firmware_Version` value switch to that listed YAML version automatically; older rows without firmware metadata keep the user-selected version. Newer YAML versions prefer `Calibrated`; older versions fall back to `Serial_Calibrate` or `Serial`. Advanced settings allow selecting a specific YAML version, YAML data section, timeline size, and visible plots.
 
-The Fire-IQ live viewer is a static Web Serial application for two modified YPOD streams at 9600 baud. It uses `YPOD_HeaderLog.yaml` to map incoming CSV rows, then overlays the two pods in shared CO, CO2, and PM2.5 plots.
+The Fire-IQ live viewer is a static Web Serial application for two modified YPOD streams at 9600 baud. It uses `YPOD_HeaderLog.yaml` and the same firmware-aware row mapping as AQIQ, then overlays the two pods in shared CO, CO2, and PM2.5 plots.
 
 ## Hosting
 
