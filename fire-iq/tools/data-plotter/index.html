@@ -6,7 +6,7 @@
   <title>Fire-IQ Data Plotter | HAQ Lab PBL</title>
   <link rel="stylesheet" href="../../../assets/css/main.css">
 </head>
-<body class="tool-page theme-fire-iq">
+<body class="tool-page live-viewer-page theme-fire-iq">
   <header class="site-header">
     <a class="brand" href="../../../">HAQ Lab PBL</a>
     <nav class="site-nav" aria-label="Tool navigation">
@@ -15,14 +15,179 @@
     </nav>
   </header>
 
-  <main class="page-shell">
-    <section class="tool-workspace" data-tool-placeholder data-program="Fire-IQ" data-tool-name="Data Plotter">
-      <div class="placeholder-panel">
-        <p class="eyebrow">Fire-IQ</p>
-        <h1>Data Plotter Placeholder</h1>
-        <p>Static page reserved for the Fire-IQ data plotting workflow.</p>
-        <div class="placeholder-status" data-placeholder-status>Data Plotter module pending.</div>
+  <main class="live-shell fire-live-shell" data-fire-iq-data-plotter>
+    <section class="live-header" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">Fire-IQ data plotter</p>
+        <h1 id="page-title">YPOD CSV Visualization</h1>
       </div>
+    </section>
+
+    <section class="live-controls fire-pod-controls" aria-label="Data plotter controls">
+      <fieldset class="pod-count-toggle" data-pod-count>
+        <legend>Pods</legend>
+        <label><input type="radio" name="pod-count" value="1"> One pod</label>
+        <label><input type="radio" name="pod-count" value="2" checked> Two pods</label>
+      </fieldset>
+
+      <article class="pod-control-card">
+        <input id="pod-1-id" class="pod-label-input" type="text" placeholder="POD 1 label" aria-label="POD 1 label" data-pod-id="pod1">
+        <label class="file-load-button primary-action">
+          Load CSV
+          <input type="file" accept=".csv,.txt,text/csv" data-csv-input="pod1" hidden>
+        </label>
+        <button type="button" data-clear-pod="pod1" disabled>Clear</button>
+        <div class="connection-status" data-pod-status="pod1" aria-live="polite">No file loaded</div>
+      </article>
+
+      <article class="pod-control-card" data-pod-section="pod2">
+        <input id="pod-2-id" class="pod-label-input" type="text" placeholder="POD 2 label" aria-label="POD 2 label" data-pod-id="pod2">
+        <label class="file-load-button primary-action">
+          Load CSV
+          <input type="file" accept=".csv,.txt,text/csv" data-csv-input="pod2" hidden>
+        </label>
+        <button type="button" data-clear-pod="pod2" disabled>Clear</button>
+        <div class="connection-status" data-pod-status="pod2" aria-live="polite">No file loaded</div>
+      </article>
+
+      <button type="button" data-reset>Reset</button>
+    </section>
+
+    <details class="advanced-settings">
+      <summary>Advanced settings</summary>
+      <div class="advanced-grid fire-advanced-grid">
+        <label class="control-group" for="yaml-version">
+          <span>YAML version</span>
+          <select id="yaml-version" data-yaml-version></select>
+        </label>
+
+        <label class="control-group" for="yaml-section">
+          <span>YAML type</span>
+          <select id="yaml-section" data-yaml-section></select>
+        </label>
+
+        <div class="schema-card advanced-schema-card" aria-live="polite">
+          <span class="schema-label">YAML source</span>
+          <a data-schema-link href="https://github.com/HanniganAirQuality/All-POD-YAMLs/blob/main/YPOD_HeaderLog.yaml">YPOD_HeaderLog.yaml</a>
+          <span data-schema-status>Loading YPOD schema...</span>
+        </div>
+
+        <label class="control-group" for="window-minutes">
+          <span>View window (min, 0 = all)</span>
+          <input id="window-minutes" type="number" min="0" max="1440" step="0.25" value="0" data-window-minutes>
+        </label>
+      </div>
+
+      <section class="serial-readout fire-serial-readout" aria-label="File readout">
+        <div class="serial-panel">
+          <span>POD 1 rows</span>
+          <strong data-row-count="pod1">0</strong>
+        </div>
+        <div class="serial-panel">
+          <span>POD 1 time span</span>
+          <strong data-time-span="pod1">--</strong>
+        </div>
+        <div class="serial-panel" data-pod-section="pod2">
+          <span>POD 2 rows</span>
+          <strong data-row-count="pod2">0</strong>
+        </div>
+        <div class="serial-panel" data-pod-section="pod2">
+          <span>POD 2 time span</span>
+          <strong data-time-span="pod2">--</strong>
+        </div>
+
+        <div class="serial-panel raw-line-panel">
+          <span>POD 1 first row</span>
+          <code data-first-line="pod1">--</code>
+        </div>
+        <div class="serial-panel raw-line-panel" data-pod-section="pod2">
+          <span>POD 2 first row</span>
+          <code data-first-line="pod2">--</code>
+        </div>
+        <div class="serial-panel debug-panel">
+          <span>POD 1 skipped rows</span>
+          <div class="debug-value-grid" data-skipped-rows="pod1">0</div>
+        </div>
+        <div class="serial-panel debug-panel" data-pod-section="pod2">
+          <span>POD 2 skipped rows</span>
+          <div class="debug-value-grid" data-skipped-rows="pod2">0</div>
+        </div>
+      </section>
+    </details>
+
+    <section class="plot-settings basic-plot-settings" aria-label="Basic plot selection">
+      <fieldset class="plot-toggles">
+        <legend>Plots shown</legend>
+        <label><input type="checkbox" data-plot-toggle value="co" checked> CO</label>
+        <label><input type="checkbox" data-plot-toggle value="co2" checked> CO2</label>
+        <label><input type="checkbox" data-plot-toggle value="pm25" checked> PM2.5</label>
+      </fieldset>
+    </section>
+
+    <section class="metric-strip" aria-label="Latest readings">
+      <article class="metric-card">
+        <span>POD 1 CO</span>
+        <strong data-metric="pod1-co">--</strong>
+      </article>
+      <article class="metric-card">
+        <span>POD 1 CO2</span>
+        <strong data-metric="pod1-co2">--</strong>
+      </article>
+      <article class="metric-card">
+        <span>POD 1 PM2.5</span>
+        <strong data-metric="pod1-pm25">--</strong>
+      </article>
+      <article class="metric-card" data-pod-section="pod2">
+        <span>POD 2 CO</span>
+        <strong data-metric="pod2-co">--</strong>
+      </article>
+      <article class="metric-card" data-pod-section="pod2">
+        <span>POD 2 CO2</span>
+        <strong data-metric="pod2-co2">--</strong>
+      </article>
+      <article class="metric-card" data-pod-section="pod2">
+        <span>POD 2 PM2.5</span>
+        <strong data-metric="pod2-pm25">--</strong>
+      </article>
+    </section>
+
+    <section class="chart-grid fire-chart-grid" aria-label="Fire-IQ CSV charts">
+      <article class="chart-card" data-chart-card="co">
+        <div class="chart-heading">
+          <div>
+            <h2>Carbon Monoxide <span>[ppm]</span></h2>
+          </div>
+          <span data-chart-stats="co">--</span>
+        </div>
+        <div class="chart-legend" data-chart-legend="co"></div>
+        <canvas id="chart-co" data-chart="co"></canvas>
+      </article>
+
+      <article class="chart-card" data-chart-card="co2">
+        <div class="chart-heading">
+          <div>
+            <h2>Carbon Dioxide <span>[ppm]</span></h2>
+          </div>
+          <span data-chart-stats="co2">--</span>
+        </div>
+        <div class="chart-legend" data-chart-legend="co2"></div>
+        <canvas id="chart-co2" data-chart="co2"></canvas>
+      </article>
+
+      <article class="chart-card" data-chart-card="pm25">
+        <div class="chart-heading">
+          <div>
+            <h2>Particulate Matter 2.5 <span>[ug/m^3]</span></h2>
+          </div>
+          <span data-chart-stats="pm25">--</span>
+        </div>
+        <div class="chart-legend" data-chart-legend="pm25"></div>
+        <canvas id="chart-pm25" data-chart="pm25"></canvas>
+      </article>
+    </section>
+
+    <section class="export-actions" aria-label="Export graph view">
+      <button type="button" data-export-png>Export graph view PNG</button>
     </section>
   </main>
 
