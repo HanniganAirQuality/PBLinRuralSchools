@@ -514,9 +514,6 @@ input {
   gap: 0.25rem;
 }
 
-.control-group label,
-.control-group span,
-
 .connection-status {
   min-height: 2.25rem;
   margin-left: auto;
@@ -527,6 +524,73 @@ input {
   color: var(--ink);
   background: var(--surface-soft);
   font-weight: 800;
+}
+
+.setting-label,
+.setting-legend {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.setting-legend {
+  padding: 0;
+}
+
+.setting-help {
+  position: relative;
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  color: var(--accent);
+  background: var(--surface-soft);
+  cursor: help;
+  flex: 0 0 auto;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1;
+  text-transform: none;
+}
+
+.setting-help::after {
+  content: attr(data-help);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.45rem);
+  z-index: 20;
+  width: max-content;
+  max-width: min(17rem, calc(100vw - 2rem));
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.45rem 0.55rem;
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: 0 14px 34px var(--shadow-soft);
+  opacity: 0;
+  pointer-events: none;
+  text-align: left;
+  transform: translate(-50%, 0.2rem);
+  transition: opacity 120ms ease, transform 120ms ease;
+  white-space: normal;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.setting-help:hover::after,
+.setting-help:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
 }
 
 .metric-strip {

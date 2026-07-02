@@ -21,6 +21,7 @@ const HOVER_RADIUS = 10;
 const CHART_DRAG_MIME = "application/x-haq-chart-card";
 const CHART_COMBINE_INSET = 0.22;
 const AXIS_SCALE_SPLIT_RATIO = 10;
+const Y_AXIS_MAX_BUFFER_RATIO = 0.15;
 const COLUMN_CHART_COLORS = [
   "#0f766e",
   "#dc2626",
@@ -2038,12 +2039,13 @@ function columnValueKey(index) {
 
 function getYRange(values, minZero = false, defaultRange = null) {
   let min = Math.min(...values);
-  let max = Math.max(...values);
+  const dataMax = Math.max(...values);
+  let max = dataMax;
 
   if (defaultRange) {
     return {
       min: Math.min(defaultRange.min, min),
-      max: Math.max(defaultRange.max, max),
+      max: Math.max(defaultRange.max, getBufferedAxisMax(dataMax, min)),
     };
   }
 
@@ -2059,8 +2061,18 @@ function getYRange(values, minZero = false, defaultRange = null) {
   const padding = (max - min) * 0.08;
   return {
     min: minZero ? Math.min(0, min) : min - padding,
-    max: max + padding,
+    max: getBufferedAxisMax(dataMax, min),
   };
+}
+
+function getBufferedAxisMax(max, min) {
+  const valueBuffer = Math.abs(max) * Y_AXIS_MAX_BUFFER_RATIO;
+
+  if (valueBuffer > 0) {
+    return max + valueBuffer;
+  }
+
+  return max + Math.max(1, Math.abs(max - min) * Y_AXIS_MAX_BUFFER_RATIO);
 }
 
 function drawGrid(

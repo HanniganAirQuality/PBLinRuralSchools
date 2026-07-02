@@ -18,6 +18,7 @@ const MIN_CHART_WIDTH = 220;
 const MIN_CHART_HEIGHT = 104;
 const POINT_RADIUS = 2.3;
 const HOVER_RADIUS = 10;
+const Y_AXIS_MAX_BUFFER_RATIO = 0.15;
 const EXPORT_CHART_THEME = {
   background: "#ffffff",
   grid: "#d9dee6",
@@ -884,7 +885,8 @@ function visibleRecordsByPod() {
 
 function getYRange(values, minZero = false) {
   let min = Math.min(...values);
-  let max = Math.max(...values);
+  const dataMax = Math.max(...values);
+  let max = dataMax;
 
   if (minZero) {
     min = Math.min(0, min);
@@ -898,8 +900,18 @@ function getYRange(values, minZero = false) {
   const padding = (max - min) * 0.08;
   return {
     min: minZero ? Math.min(0, min) : min - padding,
-    max: max + padding,
+    max: getBufferedAxisMax(dataMax, min),
   };
+}
+
+function getBufferedAxisMax(max, min) {
+  const valueBuffer = Math.abs(max) * Y_AXIS_MAX_BUFFER_RATIO;
+
+  if (valueBuffer > 0) {
+    return max + valueBuffer;
+  }
+
+  return max + Math.max(1, Math.abs(max - min) * Y_AXIS_MAX_BUFFER_RATIO);
 }
 
 function drawGrid(context, plot, width, height, xMin, xMax, yRange, theme, { leftLabel = "" } = {}) {

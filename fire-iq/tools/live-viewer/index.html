@@ -45,23 +45,23 @@
       <summary>Advanced settings</summary>
       <div class="advanced-grid fire-advanced-grid">
         <label class="control-group" for="yaml-version">
-          <span>YAML version</span>
+          <span class="setting-label">YAML version <span class="setting-help" tabindex="0" aria-label="YAML version help" data-help="Choose the YPOD firmware schema used to interpret incoming serial rows.">?</span></span>
           <select id="yaml-version" data-yaml-version></select>
         </label>
 
         <label class="control-group" for="yaml-section">
-          <span>YAML type</span>
+          <span class="setting-label">YAML type <span class="setting-help" tabindex="0" aria-label="YAML type help" data-help="Choose which data section from the selected YAML version should map column names and units.">?</span></span>
           <select id="yaml-section" data-yaml-section></select>
         </label>
 
         <div class="schema-card advanced-schema-card" aria-live="polite">
-          <span class="schema-label">YAML source</span>
+          <span class="schema-label">YAML source <span class="setting-help" tabindex="0" aria-label="YAML source help" data-help="Shows the schema file currently supplying column names, units, and default axis ranges.">?</span></span>
           <a data-schema-link href="https://github.com/HanniganAirQuality/All-POD-YAMLs/blob/main/YPOD_HeaderLog.yaml">YPOD_HeaderLog.yaml</a>
           <span data-schema-status>Loading YPOD schema...</span>
         </div>
 
         <label class="control-group" for="timeline-minutes">
-          <span>Timeline size (min)</span>
+          <span class="setting-label">Timeline size (min) <span class="setting-help" tabindex="0" aria-label="Timeline size help" data-help="Set how many recent minutes remain visible in the live plots.">?</span></span>
           <input id="timeline-minutes" type="number" min="0.25" max="1440" step="0.25" value="5" data-timeline-minutes>
         </label>
       </div>
@@ -105,7 +105,7 @@
 
     <section class="plot-settings basic-plot-settings" aria-label="Basic plot selection">
       <fieldset class="plot-toggles">
-        <legend>Plots shown</legend>
+        <legend class="setting-legend">Plots shown <span class="setting-help" tabindex="0" aria-label="Plots shown help" data-help="Choose which standard live plots are visible.">?</span></legend>
         <label><input type="checkbox" data-plot-toggle value="co" checked> CO</label>
         <label><input type="checkbox" data-plot-toggle value="co2" checked> CO2</label>
         <label><input type="checkbox" data-plot-toggle value="pm25" checked> PM2.5</label>
