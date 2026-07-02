@@ -11,7 +11,7 @@ import {
   getYpodSectionSchema,
   loadYpodHeaderLogResource,
   resolveYpodSchemaForValues,
-} from "../core/ypod-yaml.js";;
+} from "../core/ypod-yaml.js";
 
 const DEFAULT_WINDOW_MINUTES = 0; // 0 = show entire file
 const MAX_WINDOW_MINUTES = 1440;
@@ -29,8 +29,8 @@ const EXPORT_CHART_THEME = {
 
 const POD_KEYS = ["pod1", "pod2"];
 const POD_COLORS = {
-  pod1: "#e2574c",
-  pod2: "#3d7dd8",
+  pod1: "#f46703",
+  pod2: "#efad3c",
 };
 const FIELD_ALIASES = {
   timestamp: ["DateTime", "Timestamp", "Time", "UnixTime", "Millis"],
