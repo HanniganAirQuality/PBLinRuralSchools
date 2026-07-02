@@ -1,0 +1,103 @@
+.live-tour {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  padding: 1rem;
+  display: grid;
+  place-items: center;
+  background: var(--modal-backdrop);
+}
+
+.live-tour-dialog,
+.live-tour-card {
+  border: 1px solid var(--line);
+  border-top: 6px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.1rem;
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: 0 24px 70px var(--modal-shadow);
+}
+
+.live-tour-dialog {
+  width: min(100%, 29rem);
+}
+
+.live-tour-dialog h2,
+.live-tour-card h2 {
+  margin-bottom: 0.45rem;
+  font-size: 1.25rem;
+}
+
+.live-tour-dialog p,
+.live-tour-card p {
+  margin-bottom: 1rem;
+  color: var(--muted);
+}
+
+.live-tour-remember {
+  min-height: 0;
+  margin-bottom: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--ink);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.live-tour-remember input {
+  min-height: auto;
+  margin: 0;
+}
+
+.live-tour-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.live-tour-overlay {
+  display: block;
+  background: transparent;
+}
+
+.live-tour-highlight {
+  position: fixed;
+  z-index: 41;
+  border: 3px solid var(--accent);
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 9999px rgba(23, 32, 42, 0.72),
+    0 0 0 8px rgba(255, 255, 255, 0.18),
+    0 18px 48px var(--modal-shadow);
+  pointer-events: none;
+  transition:
+    top 160ms ease,
+    left 160ms ease,
+    width 160ms ease,
+    height 160ms ease;
+}
+
+.live-tour-card {
+  position: fixed;
+  z-index: 42;
+}
+
+.live-tour-count {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+@media (max-width: 700px) {
+  .live-tour-card {
+    right: 1rem;
+    left: 1rem !important;
+    width: auto !important;
+  }
+}

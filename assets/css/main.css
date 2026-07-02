@@ -560,14 +560,11 @@ input {
   text-transform: none;
 }
 
-.setting-help::after {
-  content: attr(data-help);
-  position: absolute;
-  left: 50%;
-  bottom: calc(100% + 0.45rem);
-  z-index: 20;
+.setting-help-tooltip {
+  position: fixed;
+  z-index: 60;
   width: max-content;
-  max-width: min(17rem, calc(100vw - 2rem));
+  max-width: min(17rem, calc(100vw - 1.5rem));
   border: 1px solid var(--line);
   border-radius: 6px;
   padding: 0.45rem 0.55rem;
@@ -577,7 +574,7 @@ input {
   opacity: 0;
   pointer-events: none;
   text-align: left;
-  transform: translate(-50%, 0.2rem);
+  transform: translateY(0.2rem);
   transition: opacity 120ms ease, transform 120ms ease;
   white-space: normal;
   font-size: 0.75rem;
@@ -587,10 +584,9 @@ input {
   text-transform: none;
 }
 
-.setting-help:hover::after,
-.setting-help:focus-visible::after {
+.setting-help-tooltip.is-visible {
   opacity: 1;
-  transform: translate(-50%, 0);
+  transform: translateY(0);
 }
 
 .metric-strip {
