@@ -2,6 +2,8 @@
 // for up to two pods. Column-to-pollutant mapping is driven by the YPOD
 // header-log YAML (firmware version + section), shared with the Live Viewer
 // via core/ypod-yaml.js.
+import { showSafariLiveViewerWarning } from "../core/browser-warning.js";
+import { SerialLineReader } from "../core/serial-lines.js";
 import {
   YPOD_HEADER_LOG_PAGE,
   getPreferredYpodSection,
@@ -27,8 +29,8 @@ const EXPORT_CHART_THEME = {
 
 const POD_KEYS = ["pod1", "pod2"];
 const POD_COLORS = {
-  pod1: "#e2574c",
-  pod2: "#3d7dd8",
+  pod1: "#f46703",
+  pod2: "#efad3c",
 };
 const FIELD_ALIASES = {
   timestamp: ["DateTime", "Timestamp", "Time", "UnixTime", "Millis"],
@@ -117,6 +119,11 @@ function bindControls() {
         await loadFile(input.dataset.csvInput, file);
       }
       event.target.value = ""; // allow re-loading the same file
+    });
+  });
+  app.querySelectorAll("[data-load-pod]").forEach((button) => {
+    button.addEventListener("click", () => {
+      query(`[data-csv-input="${button.dataset.loadPod}"]`).click();
     });
   });
   app.querySelectorAll("[data-clear-pod]").forEach((button) => {

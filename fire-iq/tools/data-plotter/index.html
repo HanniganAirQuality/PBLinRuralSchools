@@ -32,20 +32,16 @@
 
       <article class="pod-control-card">
         <input id="pod-1-id" class="pod-label-input" type="text" placeholder="POD 1 label" aria-label="POD 1 label" data-pod-id="pod1">
-        <label class="file-load-button primary-action">
-          Load CSV
-          <input type="file" accept=".csv,.txt,text/csv" data-csv-input="pod1" hidden>
-        </label>
+        <button type="button" class="primary-action" data-load-pod="pod1">Load CSV</button>
+        <input type="file" accept=".csv,.txt,text/csv" data-csv-input="pod1" hidden>
         <button type="button" data-clear-pod="pod1" disabled>Clear</button>
         <div class="connection-status" data-pod-status="pod1" aria-live="polite">No file loaded</div>
       </article>
 
-      <article class="pod-control-card" data-pod-section="pod2">
-        <input id="pod-2-id" class="pod-label-input" type="text" placeholder="POD 2 label" aria-label="POD 2 label" data-pod-id="pod2">
-        <label class="file-load-button primary-action">
-          Load CSV
-          <input type="file" accept=".csv,.txt,text/csv" data-csv-input="pod2" hidden>
-        </label>
+      <article class="pod-control-card">
+        <input id="pod-2-id" class="pod-label-input" type="text" placeholder="POD 2 label" aria-label="POD 1 label" data-pod-id="pod1">
+        <button type="button" class="primary-action" data-load-pod="pod2">Load CSV</button>
+        <input type="file" accept=".csv,.txt,text/csv" data-csv-input="pod2" hidden>
         <button type="button" data-clear-pod="pod2" disabled>Clear</button>
         <div class="connection-status" data-pod-status="pod2" aria-live="polite">No file loaded</div>
       </article>
