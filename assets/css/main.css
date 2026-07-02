@@ -57,11 +57,15 @@
 
 html {
   background: var(--surface-soft);
+  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {
   min-height: 100vh;
   margin: 0;
+  overflow-x: hidden;
+  overflow-x: clip;
   color: var(--ink);
   background:
     linear-gradient(180deg, var(--body-gradient-start), var(--body-gradient-end)),
@@ -415,8 +419,14 @@ input {
   padding: 0.65rem 1rem;
 }
 
+.live-viewer-page {
+  overflow-x: hidden;
+  overflow-x: clip;
+}
+
 .live-shell {
   width: min(1500px, calc(100% - 1rem));
+  max-width: calc(100% - 1rem);
   margin: 0 auto;
   padding: 0.55rem 0;
   display: grid;
@@ -531,6 +541,7 @@ input {
   min-width: 0;
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.35rem;
   color: var(--muted);
   font-size: 0.75rem;
@@ -635,17 +646,18 @@ input {
   border-top: 1px solid var(--line);
   padding: 0.65rem;
   display: grid;
-  grid-template-columns: minmax(12rem, max-content) minmax(12rem, max-content) minmax(18rem, 1fr) minmax(10rem, max-content);
+  grid-template-columns: minmax(0, 12rem) minmax(0, 12rem) minmax(0, 1fr) minmax(0, 10rem);
   align-items: start;
   gap: 0.75rem;
 }
 
 .fire-advanced-grid {
-  grid-template-columns: minmax(12rem, max-content) minmax(12rem, max-content) minmax(18rem, 1fr) minmax(10rem, max-content);
+  grid-template-columns: minmax(0, 12rem) minmax(0, 12rem) minmax(0, 1fr) minmax(0, 10rem);
 }
 
 .advanced-schema-card {
-  min-width: min(100%, 18rem);
+  width: 100%;
+  min-width: 0;
   align-self: stretch;
 }
 
