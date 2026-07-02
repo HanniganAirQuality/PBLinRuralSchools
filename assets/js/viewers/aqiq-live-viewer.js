@@ -20,6 +20,7 @@ const POINT_RADIUS = 2.3;
 const HOVER_RADIUS = 10;
 const CHART_DRAG_MIME = "application/x-haq-chart-card";
 const CHART_COMBINE_INSET = 0.22;
+const AXIS_SCALE_SPLIT_RATIO = 10;
 const COLUMN_CHART_COLORS = [
   "#0f766e",
   "#dc2626",
@@ -389,7 +390,7 @@ function setChartCardTitle(card, chart) {
     : card.dataset.chartBaseTitle || chart?.title || "";
   const unit = chart?.isCombined
     ? chart.unit
-    : card.dataset.chartBaseUnit || chart?.unit || "";
+    : chart?.unit || card.dataset.chartBaseUnit || "";
   const nodes = [document.createTextNode(titleText)];
 
   if (unit) {
@@ -1257,12 +1258,16 @@ function updateReadout(record) {
   query("[data-last-time]").textContent = formatTime(record.timestamp);
   renderDebugValues(record);
 
-  setMetric("temperature", record.values.temperature, "deg C");
-  setMetric("humidity", record.values.humidity, "%");
-  setMetric("co2", record.values.co2, "ppm");
-  setMetric("pm25", record.values.pm25, "ug/m^3");
-  setMetric("voc", firstFinite(record.values.vocLight, record.values.vocHeavy), "");
-  setMetric("co", record.values.co, "ppm");
+  setSeriesMetric("temperature", "temperature", record.values.temperature);
+  setSeriesMetric("humidity", "humidity", record.values.humidity);
+  setSeriesMetric("co2", "co2", record.values.co2);
+  setSeriesMetric("pm25", "pm25", record.values.pm25);
+  setSeriesMetric(
+    "voc",
+    Number.isFinite(record.values.vocLight) ? "vocLight" : "vocHeavy",
+    firstFinite(record.values.vocLight, record.values.vocHeavy),
+  );
+  setSeriesMetric("co", "co", record.values.co);
 }
 
 function updateRawDebugReadout(line, values) {
@@ -1295,6 +1300,14 @@ function renderDebugValues(record = null, values = null) {
 function setMetric(name, value, unit) {
   const target = query(`[data-metric="${name}"]`);
   target.textContent = Number.isFinite(value) ? `${formatNumber(value)} ${unit}`.trim() : "--";
+}
+
+function setSeriesMetric(name, seriesKey, value) {
+  setMetric(name, value, getUnitForSeries(seriesKey));
+}
+
+function getUnitForSeries(seriesKey) {
+  return resolveColumnForSeries(seriesKey)?.unit || "";
 }
 
 function queueRender() {
@@ -1355,7 +1368,7 @@ function renderChartCanvas(canvas, chart, {
   context.fillRect(0, 0, width, height);
 
   const records = visibleRecords();
-  const axisGroups = getChartAxisGroups(chart);
+  const axisGroups = getChartAxisGroups(chart, records);
   const plottedSeries = axisGroups.flatMap((axisGroup) => axisGroup.series);
   const seriesValues = plottedSeries.flatMap((series) =>
     records
@@ -1432,7 +1445,7 @@ function findNearestChartPoint(canvas, chart, pointer) {
   const width = Math.max(MIN_CHART_WIDTH, rect.width);
   const height = Math.max(MIN_CHART_HEIGHT, rect.height);
   const records = visibleRecords();
-  const axisGroups = getChartAxisGroups(chart);
+  const axisGroups = getChartAxisGroups(chart, records);
   const plottedSeries = axisGroups.flatMap((axisGroup) => axisGroup.series);
   const seriesValues = plottedSeries.flatMap((series) =>
     records
@@ -1695,16 +1708,7 @@ function makeCombinedChart(rootKey, groupKeys, baseCharts) {
     .filter(Boolean);
   const rootSource = sources.find((source) => source.key === rootKey) || sources[0];
   const combinedSeries = sources.flatMap((source) => source.series);
-  const leftUnitKey = combinedSeries[0]?.unitKey || "";
-  const rightUnitKey = combinedSeries.find((series) => series.unitKey !== leftUnitKey)?.unitKey || "";
-  const leftSeries = combinedSeries.filter((series) => !rightUnitKey || series.unitKey === leftUnitKey);
-  const rightSeries = rightUnitKey
-    ? combinedSeries.filter((series) => series.unitKey !== leftUnitKey)
-    : [];
-  const axisGroups = [
-    makeAxisGroup("left", leftSeries),
-    ...(rightSeries.length > 0 ? [makeAxisGroup("right", rightSeries)] : []),
-  ];
+  const axisGroups = makeAxisGroupsForSeries(combinedSeries);
 
   return {
     ...rootSource.chart,
@@ -1712,7 +1716,7 @@ function makeCombinedChart(rootKey, groupKeys, baseCharts) {
     canvas: rootSource.chart.canvas,
     stats: rootSource.chart.stats,
     title: sources.map((source) => source.title).join(" + "),
-    unit: axisGroups.map((axisGroup) => axisGroup.unitLabel).filter(Boolean).join(" / "),
+    unit: getChartUnitLabel(axisGroups),
     isCombined: true,
     sources,
     series: axisGroups.flatMap((axisGroup) => axisGroup.series),
@@ -1730,7 +1734,7 @@ function makeRenderableSourceChart(chartKey, chart) {
     unit: source.unit,
     sources: [source],
     series: source.series,
-    axisGroups: [makeAxisGroup("left", source.series)],
+    axisGroups: makeAxisGroupsForSeries(source.series),
   };
 }
 
@@ -1775,12 +1779,152 @@ function makeAxisGroup(id, series) {
   };
 }
 
-function getChartAxisGroups(chart) {
-  if (chart.axisGroups?.length) {
+function makeAxisGroupsForSeries(series, records = []) {
+  const [leftSeries, rightSeries] = splitSeriesByUnitOrScale(series, records);
+
+  return [
+    makeAxisGroup("left", leftSeries),
+    ...(rightSeries.length > 0 ? [makeAxisGroup("right", rightSeries)] : []),
+  ];
+}
+
+function splitSeriesByUnitOrScale(series, records = []) {
+  if (series.length <= 1) {
+    return [series, []];
+  }
+
+  const leftUnitKey = series[0]?.unitKey || "";
+  const rightUnitKey = series.find((item) => item.unitKey !== leftUnitKey)?.unitKey || "";
+
+  if (rightUnitKey) {
+    return [
+      series.filter((item) => item.unitKey === leftUnitKey),
+      series.filter((item) => item.unitKey !== leftUnitKey),
+    ];
+  }
+
+  const scaleGroups = splitSeriesByDefaultScale(series) || splitSeriesByValueScale(series, records);
+  return scaleGroups || [series, []];
+}
+
+function splitSeriesByValueScale(series, records) {
+  const scaledSeries = series
+    .map((item) => ({ item, scale: getSeriesValueScale(item, records) }))
+    .filter((entry) => Number.isFinite(entry.scale) && entry.scale > 0);
+
+  if (scaledSeries.length < 2) {
+    return null;
+  }
+
+  const sorted = [...scaledSeries].sort((left, right) => left.scale - right.scale);
+  const smallest = sorted[0];
+  const largest = sorted[sorted.length - 1];
+
+  if (largest.scale / smallest.scale < AXIS_SCALE_SPLIT_RATIO) {
+    return null;
+  }
+
+  const splitScale = Math.sqrt(smallest.scale * largest.scale);
+  const rightSeries = scaledSeries
+    .filter((entry) => entry.scale > splitScale)
+    .map((entry) => entry.item);
+  const rightKeys = new Set(rightSeries.map((item) => item.key));
+
+  if (rightSeries.length === 0 || rightSeries.length === series.length) {
+    return null;
+  }
+
+  return [
+    series.filter((item) => !rightKeys.has(item.key)),
+    series.filter((item) => rightKeys.has(item.key)),
+  ];
+}
+
+function getSeriesValueScale(series, records) {
+  const values = records
+    .map((record) => record.values[series.key])
+    .filter((value) => Number.isFinite(value));
+
+  if (values.length === 0) {
+    return null;
+  }
+
+  const maxMagnitude = Math.max(...values.map((value) => Math.abs(value)));
+
+  if (maxMagnitude > 0) {
+    return maxMagnitude;
+  }
+
+  return Math.abs(Math.max(...values) - Math.min(...values));
+}
+
+function splitSeriesByDefaultScale(series) {
+  const rangedSeries = series
+    .map((item) => ({ item, range: getSeriesDefaultRange(item) }))
+    .filter((entry) => entry.range);
+
+  if (rangedSeries.length < 2) {
+    return null;
+  }
+
+  const sorted = [...rangedSeries].sort(
+    (left, right) => getAxisRangeSpan(left.range) - getAxisRangeSpan(right.range),
+  );
+  const smallest = sorted[0];
+  const largest = sorted[sorted.length - 1];
+
+  if (!areAxisRangesVeryDifferent(smallest.range, largest.range)) {
+    return null;
+  }
+
+  const splitSpan = Math.sqrt(getAxisRangeSpan(smallest.range) * getAxisRangeSpan(largest.range));
+  const rightSeries = rangedSeries
+    .filter((entry) => getAxisRangeSpan(entry.range) > splitSpan)
+    .map((entry) => entry.item);
+  const rightKeys = new Set(rightSeries.map((item) => item.key));
+
+  if (rightSeries.length === 0 || rightSeries.length === series.length) {
+    return null;
+  }
+
+  return [
+    series.filter((item) => !rightKeys.has(item.key)),
+    series.filter((item) => rightKeys.has(item.key)),
+  ];
+}
+
+function getSeriesDefaultRange(series) {
+  const range = resolveColumnForSeries(series.key)?.defaultAxisRange;
+  return isValidAxisRange(range) ? range : null;
+}
+
+function getAxisRangeSpan(range) {
+  return Math.abs(range[1] - range[0]);
+}
+
+function areAxisRangesVeryDifferent(leftRange, rightRange) {
+  const leftSpan = getAxisRangeSpan(leftRange);
+  const rightSpan = getAxisRangeSpan(rightRange);
+  const smaller = Math.min(leftSpan, rightSpan);
+  const larger = Math.max(leftSpan, rightSpan);
+  const combinedSpan = Math.max(leftRange[1], rightRange[1]) - Math.min(leftRange[0], rightRange[0]);
+
+  return smaller > 0 && (
+    larger / smaller >= AXIS_SCALE_SPLIT_RATIO ||
+    combinedSpan / smaller >= AXIS_SCALE_SPLIT_RATIO
+  );
+}
+
+function getChartUnitLabel(axisGroups) {
+  return uniqueStrings(axisGroups.map((axisGroup) => axisGroup.unitLabel).filter(Boolean)).join(" / ");
+}
+
+function getChartAxisGroups(chart, records = []) {
+  if (chart.axisGroups?.length && records.length === 0) {
     return chart.axisGroups;
   }
 
-  return [makeAxisGroup("left", chart.series)];
+  return makeAxisGroupsForSeries(chart.series, records);
 }
 
 function getAxisValues(axisGroup, records) {
