@@ -516,11 +516,6 @@ input {
 
 .control-group label,
 .control-group span,
-.plot-toggles legend {
-  color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 800;
-}
 
 .connection-status {
   min-height: 2.25rem;
@@ -635,6 +630,44 @@ input {
   min-height: auto;
   margin: 0;
   padding: 0;
+}
+
+.plot-toggles legend {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.pod-count-toggle {
+  min-width: 0;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.45rem 0.55rem 0.5rem;
+}
+
+.pod-count-toggle label {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.1rem 0.65rem 0.1rem 0;
+  color: var(--ink);
+  white-space: nowrap;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.pod-count-toggle input {
+  min-height: auto;
+  margin: 0;
+  padding: 0;
+}
+
+.pod-count-toggle legend {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 800;
 }
 
 .column-toggles > div {
