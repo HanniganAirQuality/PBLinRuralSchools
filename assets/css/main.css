@@ -337,7 +337,7 @@ p {
 
 .curriculum-details {
   display: grid;
-  grid-template-columns: minmax(14rem, 0.7fr) minmax(14rem, 0.5fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr);
   gap: 0.75rem;
 }
 
@@ -379,7 +379,7 @@ p {
 }
 
 .resource-group {
-  grid-template-columns: repeat(auto-fit, minmax(9rem, max-content));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
   align-items: start;
 }
 
@@ -389,17 +389,21 @@ p {
 
 .resource-group a,
 .reference-button {
+  width: 100%;
+  min-width: 0;
   min-height: 2.35rem;
   border: 1px solid var(--line);
   border-radius: 6px;
-  padding: 0.55rem 0.75rem;
+  padding: 0.5rem 0.6rem;
   color: var(--ink);
   background: var(--surface);
-  font-size: 0.875rem;
+  font-size: 0.78rem;
   font-weight: 800;
-  line-height: 1;
+  line-height: 1.2;
   text-decoration: none;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  text-align: center;
+  white-space: normal;
 }
 
 .resource-group a:hover,
