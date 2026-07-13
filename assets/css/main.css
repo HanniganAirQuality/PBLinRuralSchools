@@ -237,7 +237,7 @@ p {
 .program-art {
   position: absolute;
   top: 54%;
-  right: 0.35rem;
+  right: 1rem;
   width: min(72%, 8rem);
   height: min(72%, 8rem);
   object-fit: contain;
