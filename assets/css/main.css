@@ -238,10 +238,10 @@ p {
   position: absolute;
   top: 54%;
   right: 0.35rem;
-  width: min(100%, 16rem);
-  height: min(100%, 16rem);
+  width: min(72%, 10rem);
+  height: min(72%, 10rem);
   object-fit: contain;
-  opacity: 0.18;
+  opacity: 0;
   pointer-events: none;
   transform: translate(12%, -50%) scale(0.88) rotate(3deg);
   transition: opacity 180ms ease, transform 220ms ease;
@@ -273,13 +273,13 @@ p {
 
 .program-card:hover .program-art,
 .program-card:focus-visible .program-art {
-  opacity: 0.68;
+  opacity: 0.6;
   transform: translate(4%, -50%) scale(1) rotate(0deg);
 }
 
 @media (hover: none) {
   .program-art {
-    opacity: 0.18;
+    opacity: 0;
     transform: translate(4%, -50%) scale(1) rotate(0deg);
   }
 }
