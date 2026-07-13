@@ -236,15 +236,21 @@ p {
 
 .program-art {
   position: absolute;
-  top: 50%;
+  top: 54%;
   right: 0.35rem;
-  width: min(72%, 10rem);
-  height: min(72%, 10rem);
+  width: min(100%, 16rem);
+  height: min(100%, 16rem);
   object-fit: contain;
-  opacity: 0;
+  opacity: 0.18;
   pointer-events: none;
   transform: translate(12%, -50%) scale(0.88) rotate(3deg);
   transition: opacity 180ms ease, transform 220ms ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  .program-art {
+    filter: invert(1);
+  }
 }
 
 .program-card:hover,
@@ -267,7 +273,7 @@ p {
 
 .program-card:hover .program-art,
 .program-card:focus-visible .program-art {
-  opacity: 0.78;
+  opacity: 0.68;
   transform: translate(4%, -50%) scale(1) rotate(0deg);
 }
 
