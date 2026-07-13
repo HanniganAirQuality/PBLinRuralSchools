@@ -25,11 +25,19 @@
 
     <section class="live-controls fire-pod-controls" aria-label="Data plotter controls">
       <article class="pod-control-card">
-        <input id="pod-1-id" class="pod-label-input" type="text" placeholder="YPOD label" aria-label="YPOD label" data-pod-id="pod1">
+        <input id="pod-1-id" class="pod-label-input" type="text" placeholder="YPOD 1 label" aria-label="YPOD 1 label" data-pod-id="pod1">
         <button type="button" class="primary-action" data-load-pod="pod1">Load CSV</button>
         <input type="file" accept=".csv,.txt,text/csv" data-csv-input="pod1" hidden>
         <button type="button" data-clear-pod="pod1" disabled>Clear</button>
         <div class="connection-status" data-pod-status="pod1" aria-live="polite">No file loaded</div>
+      </article>
+
+      <article class="pod-control-card">
+        <input id="pod-2-id" class="pod-label-input" type="text" placeholder="YPOD 2 label" aria-label="YPOD 2 label" data-pod-id="pod2">
+        <button type="button" class="primary-action" data-load-pod="pod2">Load CSV</button>
+        <input type="file" accept=".csv,.txt,text/csv" data-csv-input="pod2" hidden>
+        <button type="button" data-clear-pod="pod2" disabled>Clear</button>
+        <div class="connection-status" data-pod-status="pod2" aria-live="polite">No file loaded</div>
       </article>
 
       <button type="button" data-reset>Reset</button>
@@ -77,22 +85,38 @@
         </div>
       </div>
 
-      <section class="serial-readout fire-serial-readout single-pod-readout" aria-label="File readout">
+      <section class="serial-readout fire-serial-readout" aria-label="File readout">
         <div class="serial-panel">
-          <span>YPOD rows</span>
+          <span>YPOD 1 rows</span>
           <strong data-row-count="pod1">0</strong>
         </div>
         <div class="serial-panel">
-          <span>YPOD time span</span>
+          <span>YPOD 1 time span</span>
           <strong data-time-span="pod1">--</strong>
         </div>
+        <div class="serial-panel">
+          <span>YPOD 2 rows</span>
+          <strong data-row-count="pod2">0</strong>
+        </div>
+        <div class="serial-panel">
+          <span>YPOD 2 time span</span>
+          <strong data-time-span="pod2">--</strong>
+        </div>
         <div class="serial-panel raw-line-panel">
-          <span>YPOD first row</span>
+          <span>YPOD 1 first row</span>
           <code data-first-line="pod1">--</code>
         </div>
+        <div class="serial-panel raw-line-panel">
+          <span>YPOD 2 first row</span>
+          <code data-first-line="pod2">--</code>
+        </div>
         <div class="serial-panel debug-panel">
-          <span>YPOD skipped rows</span>
+          <span>YPOD 1 skipped rows</span>
           <div class="debug-value-grid" data-skipped-rows="pod1">0</div>
+        </div>
+        <div class="serial-panel debug-panel">
+          <span>YPOD 2 skipped rows</span>
+          <div class="debug-value-grid" data-skipped-rows="pod2">0</div>
         </div>
       </section>
     </details>
@@ -106,18 +130,30 @@
       </fieldset>
     </section>
 
-    <section class="metric-strip single-pod-metrics" aria-label="Latest readings">
+    <section class="metric-strip" aria-label="Latest readings">
       <article class="metric-card">
-        <span>YPOD CO</span>
+        <span>YPOD 1 CO</span>
         <strong data-metric="pod1-co">--</strong>
       </article>
       <article class="metric-card">
-        <span>YPOD CO2</span>
+        <span>YPOD 1 CO2</span>
         <strong data-metric="pod1-co2">--</strong>
       </article>
       <article class="metric-card">
-        <span>YPOD PM2.5</span>
+        <span>YPOD 1 PM2.5</span>
         <strong data-metric="pod1-pm25">--</strong>
+      </article>
+      <article class="metric-card">
+        <span>YPOD 2 CO</span>
+        <strong data-metric="pod2-co">--</strong>
+      </article>
+      <article class="metric-card">
+        <span>YPOD 2 CO2</span>
+        <strong data-metric="pod2-co2">--</strong>
+      </article>
+      <article class="metric-card">
+        <span>YPOD 2 PM2.5</span>
+        <strong data-metric="pod2-pm25">--</strong>
       </article>
     </section>
 

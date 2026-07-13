@@ -1,5 +1,5 @@
-// Shared single-POD CSV plotting engine. Program configuration selects YPOD
-// or SPOD schemas and the measurement charts shown.
+// Shared POD CSV plotting engine. Program configuration selects YPOD or SPOD
+// schemas, the device count, and the measurement charts shown.
 import {
   SPOD_HEADER_LOG_PAGE,
   YPOD_HEADER_LOG_PAGE,
@@ -16,6 +16,7 @@ const PROGRAM_NAME = PLOTTER_CONFIG.programName || "Fire-IQ";
 const IS_SPOD = PLOTTER_CONFIG.podType === "SPOD";
 const POD_NAME = IS_SPOD ? "SPOD" : "YPOD";
 const POD_HEADER_LOG_PAGE = IS_SPOD ? SPOD_HEADER_LOG_PAGE : YPOD_HEADER_LOG_PAGE;
+const MAX_PODS = PLOTTER_CONFIG.maxPods === 1 ? 1 : 2;
 const DEFAULT_WINDOW_MINUTES = 0; // 0 = show entire file
 const MAX_WINDOW_MINUTES = 1440;
 const MIN_CHART_WIDTH = 220;
@@ -34,9 +35,10 @@ const EXPORT_CHART_THEME = {
   invertSeries: false,
 };
 
-const POD_KEYS = ["pod1"];
+const POD_KEYS = MAX_PODS === 1 ? ["pod1"] : ["pod1", "pod2"];
 const POD_COLORS = {
   pod1: "#f46703",
+  pod2: "#efad3c",
 };
 const FIREIQ_FIELD_ALIASES = {
   timestamp: ["DateTime", "Timestamp", "Time", "UnixTime", "Millis"],
@@ -73,30 +75,9 @@ const FIELD_ALIASES = PLOTTER_CONFIG.fieldAliases || (
 );
 
 const FIREIQ_CHARTS = {
-  co: {
-    canvas: "chart-co",
-    stats: "co",
-    title: "Carbon Monoxide",
-    unit: "ppm",
-    minZero: true,
-    series: [{ podKey: "pod1", key: "co", color: POD_COLORS.pod1 }],
-  },
-  co2: {
-    canvas: "chart-co2",
-    stats: "co2",
-    title: "Carbon Dioxide",
-    unit: "ppm",
-    minZero: true,
-    series: [{ podKey: "pod1", key: "co2", color: POD_COLORS.pod1 }],
-  },
-  pm25: {
-    canvas: "chart-pm25",
-    stats: "pm25",
-    title: "Particulate Matter 2.5",
-    unit: "ug/m^3",
-    minZero: true,
-    series: [{ podKey: "pod1", key: "pm25", color: POD_COLORS.pod1 }],
-  },
+  co: makePodChart("co", "Carbon Monoxide", "ppm", true),
+  co2: makePodChart("co2", "Carbon Dioxide", "ppm", true),
+  pm25: makePodChart("pm25", "Particulate Matter 2.5", "ug/m^3", true),
 };
 
 const AQIQ_CHARTS = {
@@ -159,9 +140,12 @@ const state = {
   zoomFactor: 1,
   renderQueued: false,
   hoverPoint: null,
-  pods: {
-    pod1: makePodState(POD_NAME),
-  },
+  pods: Object.fromEntries(
+    POD_KEYS.map((podKey, index) => [
+      podKey,
+      makePodState(MAX_PODS === 1 ? POD_NAME : `${POD_NAME} ${index + 1}`),
+    ]),
+  ),
 };
 
 function makePodChart(key, title, unit, minZero = false) {
@@ -171,7 +155,7 @@ function makePodChart(key, title, unit, minZero = false) {
     title,
     unit,
     minZero,
-    series: [{ podKey: "pod1", key, color: POD_COLORS.pod1 }],
+    series: POD_KEYS.map((podKey) => ({ podKey, key, color: POD_COLORS[podKey] })),
   };
 }
 
@@ -1491,7 +1475,7 @@ function drawExportHeader(context, width, padding) {
   context.fillStyle = "#17202a";
   context.font = "700 22px Arial, Helvetica, sans-serif";
   context.fillText(
-    PLOTTER_CONFIG.exportTitle || `${PROGRAM_NAME} ${POD_NAME} Data Visualization`,
+    PLOTTER_CONFIG.exportTitle || `${PROGRAM_NAME} ${MAX_PODS === 2 ? `Dual-${POD_NAME}` : POD_NAME} Data Visualization`,
     padding,
     34,
   );
