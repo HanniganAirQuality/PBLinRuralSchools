@@ -226,7 +226,7 @@ p {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 
 .program-card > :not(.program-art) {
@@ -264,11 +264,6 @@ p {
   border-color: var(--accent);
   box-shadow: 0 18px 48px var(--shadow-hover);
   outline: none;
-}
-
-.program-card:hover,
-.program-card:focus-visible {
-  transform: translateY(-2px);
 }
 
 .program-card:hover .program-art,
