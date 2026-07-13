@@ -105,8 +105,16 @@ const AQIQ_CHARTS = {
   co2: makePodChart("co2", "Carbon Dioxide", "ppm", true),
   co: makePodChart("co", "Carbon Monoxide", "ppm", true),
   pm25: makePodChart("pm25", "Particulate Matter 2.5", "ug/m^3", true),
-  vocLight: makePodChart("vocLight", "Figaro 2600 Light VOC", "ADU", true),
-  vocHeavy: makePodChart("vocHeavy", "Figaro 2602 Heavy VOC", "ADU", true),
+  voc: {
+    stats: "voc",
+    title: "Volatile Organic Compounds",
+    unit: "ADU",
+    minZero: true,
+    series: [
+      { podKey: "pod1", key: "vocLight", label: "Figaro 2600 Light VOC", color: "#3ac831" },
+      { podKey: "pod1", key: "vocHeavy", label: "Figaro 2602 Heavy VOC", color: "#02580e" },
+    ],
+  },
 };
 
 const SQIQ_CHARTS = {
