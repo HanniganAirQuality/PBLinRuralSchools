@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AQIQ Data Visualization | HAQ Lab PBL</title>
+  <title>SQIQ Data Visualization | HAQ Lab PBL</title>
   <link rel="stylesheet" href="../../../assets/css/main.css">
 </head>
-<body class="tool-page live-viewer-page theme-aqiq">
+<body class="tool-page live-viewer-page theme-sqiq">
   <header class="site-header">
     <a class="brand" href="../../../">HAQ Lab PBL</a>
     <nav class="site-nav" aria-label="Tool navigation">
-      <a href="../../">AQIQ hub</a>
+      <a href="../../">SQIQ hub</a>
       <a href="../live-viewer/">Live Viewer</a>
     </nav>
   </header>
@@ -18,20 +18,20 @@
   <main class="live-shell" data-pod-data-plotter>
     <section class="live-header" aria-labelledby="page-title">
       <div>
-        <p class="eyebrow">AQIQ data visualization</p>
-        <h1 id="page-title">YPOD CSV Visualization</h1>
+        <p class="eyebrow">SQIQ data visualization</p>
+        <h1 id="page-title">SPOD CSV Visualization</h1>
       </div>
     </section>
 
     <section class="live-controls fire-pod-controls" aria-label="Data visualization controls">
       <fieldset class="pod-count-toggle" data-pod-count>
-        <legend>Pods</legend>
-        <label><input type="radio" name="pod-count" value="1"> One pod</label>
-        <label><input type="radio" name="pod-count" value="2" checked> Two pods</label>
+        <legend>SPODs</legend>
+        <label><input type="radio" name="pod-count" value="1"> One SPOD</label>
+        <label><input type="radio" name="pod-count" value="2" checked> Two SPODs</label>
       </fieldset>
 
       <article class="pod-control-card">
-        <input class="pod-label-input" type="text" placeholder="POD 1 label" aria-label="POD 1 label" data-pod-id="pod1">
+        <input class="pod-label-input" type="text" placeholder="SPOD 1 label" aria-label="SPOD 1 label" data-pod-id="pod1">
         <button type="button" class="primary-action" data-load-pod="pod1">Load CSV</button>
         <input type="file" accept=".csv,.txt,text/csv" data-csv-input="pod1" hidden>
         <button type="button" data-clear-pod="pod1" disabled>Clear</button>
@@ -39,7 +39,7 @@
       </article>
 
       <article class="pod-control-card" data-pod-section="pod2">
-        <input class="pod-label-input" type="text" placeholder="POD 2 label" aria-label="POD 2 label" data-pod-id="pod2">
+        <input class="pod-label-input" type="text" placeholder="SPOD 2 label" aria-label="SPOD 2 label" data-pod-id="pod2">
         <button type="button" class="primary-action" data-load-pod="pod2">Load CSV</button>
         <input type="file" accept=".csv,.txt,text/csv" data-csv-input="pod2" hidden>
         <button type="button" data-clear-pod="pod2" disabled>Clear</button>
@@ -62,8 +62,8 @@
         </label>
         <div class="schema-card advanced-schema-card" aria-live="polite">
           <span class="schema-label">YAML source</span>
-          <a data-schema-link href="https://github.com/HanniganAirQuality/All-POD-YAMLs/blob/main/YPOD_HeaderLog.yaml">YPOD_HeaderLog.yaml</a>
-          <span data-schema-status>Loading YPOD schema...</span>
+          <a data-schema-link href="https://github.com/HanniganAirQuality/All-POD-YAMLs/blob/main/SPOD_HeaderLog.yaml">SPOD_HeaderLog.yaml</a>
+          <span data-schema-status>Loading SPOD schema...</span>
         </div>
         <label class="control-group" for="window-minutes">
           <span>View window (min, 0 = all)</span>
@@ -72,14 +72,14 @@
       </div>
 
       <section class="serial-readout fire-serial-readout" aria-label="File readout">
-        <div class="serial-panel"><span>POD 1 rows</span><strong data-row-count="pod1">0</strong></div>
-        <div class="serial-panel"><span>POD 1 time span</span><strong data-time-span="pod1">--</strong></div>
-        <div class="serial-panel" data-pod-section="pod2"><span>POD 2 rows</span><strong data-row-count="pod2">0</strong></div>
-        <div class="serial-panel" data-pod-section="pod2"><span>POD 2 time span</span><strong data-time-span="pod2">--</strong></div>
-        <div class="serial-panel raw-line-panel"><span>POD 1 first row</span><code data-first-line="pod1">--</code></div>
-        <div class="serial-panel raw-line-panel" data-pod-section="pod2"><span>POD 2 first row</span><code data-first-line="pod2">--</code></div>
-        <div class="serial-panel debug-panel"><span>POD 1 skipped rows</span><div class="debug-value-grid" data-skipped-rows="pod1">0</div></div>
-        <div class="serial-panel debug-panel" data-pod-section="pod2"><span>POD 2 skipped rows</span><div class="debug-value-grid" data-skipped-rows="pod2">0</div></div>
+        <div class="serial-panel"><span>SPOD 1 rows</span><strong data-row-count="pod1">0</strong></div>
+        <div class="serial-panel"><span>SPOD 1 time span</span><strong data-time-span="pod1">--</strong></div>
+        <div class="serial-panel" data-pod-section="pod2"><span>SPOD 2 rows</span><strong data-row-count="pod2">0</strong></div>
+        <div class="serial-panel" data-pod-section="pod2"><span>SPOD 2 time span</span><strong data-time-span="pod2">--</strong></div>
+        <div class="serial-panel raw-line-panel"><span>SPOD 1 first row</span><code data-first-line="pod1">--</code></div>
+        <div class="serial-panel raw-line-panel" data-pod-section="pod2"><span>SPOD 2 first row</span><code data-first-line="pod2">--</code></div>
+        <div class="serial-panel debug-panel"><span>SPOD 1 skipped rows</span><div class="debug-value-grid" data-skipped-rows="pod1">0</div></div>
+        <div class="serial-panel debug-panel" data-pod-section="pod2"><span>SPOD 2 skipped rows</span><div class="debug-value-grid" data-skipped-rows="pod2">0</div></div>
       </section>
     </details>
 
@@ -87,12 +87,10 @@
       <fieldset class="plot-toggles">
         <legend>Plots shown</legend>
         <label><input type="checkbox" data-plot-toggle value="temperature" checked> Temperature</label>
-        <label><input type="checkbox" data-plot-toggle value="humidity" checked> Humidity</label>
-        <label><input type="checkbox" data-plot-toggle value="co2" checked> CO2</label>
-        <label><input type="checkbox" data-plot-toggle value="co" checked> CO</label>
-        <label><input type="checkbox" data-plot-toggle value="pm25" checked> PM2.5</label>
-        <label><input type="checkbox" data-plot-toggle value="vocLight" checked> Light VOC</label>
-        <label><input type="checkbox" data-plot-toggle value="vocHeavy" checked> Heavy VOC</label>
+        <label><input type="checkbox" data-plot-toggle value="co2" checked> Carbon Dioxide</label>
+        <label><input type="checkbox" data-plot-toggle value="soil" checked> Soil</label>
+        <label><input type="checkbox" data-plot-toggle value="light" checked> Visible and Infrared Light</label>
+        <label><input type="checkbox" data-plot-toggle value="uv" checked> UV Index</label>
       </fieldset>
       <div class="plot-view-controls">
         <label class="control-group" for="time-mode">
@@ -110,14 +108,12 @@
       </div>
     </section>
 
-    <section class="chart-grid aqiq-data-chart-grid" aria-label="AQIQ CSV charts">
+    <section class="chart-grid sqiq-data-chart-grid" aria-label="SQIQ CSV charts">
       <article class="chart-card" data-chart-card="temperature"><div class="chart-heading"><h2>Temperature <span>[Celsius]</span></h2><span data-chart-stats="temperature">--</span></div><div class="chart-legend" data-chart-legend="temperature"></div><canvas id="chart-temperature" data-chart="temperature" role="img" aria-label="Interactive temperature chart"></canvas></article>
-      <article class="chart-card" data-chart-card="humidity"><div class="chart-heading"><h2>Relative Humidity <span>[%RH]</span></h2><span data-chart-stats="humidity">--</span></div><div class="chart-legend" data-chart-legend="humidity"></div><canvas id="chart-humidity" data-chart="humidity" role="img" aria-label="Interactive relative humidity chart"></canvas></article>
       <article class="chart-card" data-chart-card="co2"><div class="chart-heading"><h2>Carbon Dioxide <span>[ppm]</span></h2><span data-chart-stats="co2">--</span></div><div class="chart-legend" data-chart-legend="co2"></div><canvas id="chart-co2" data-chart="co2" role="img" aria-label="Interactive carbon dioxide chart"></canvas></article>
-      <article class="chart-card" data-chart-card="co"><div class="chart-heading"><h2>Carbon Monoxide <span>[ppm]</span></h2><span data-chart-stats="co">--</span></div><div class="chart-legend" data-chart-legend="co"></div><canvas id="chart-co" data-chart="co" role="img" aria-label="Interactive carbon monoxide chart"></canvas></article>
-      <article class="chart-card" data-chart-card="pm25"><div class="chart-heading"><h2>Particulate Matter 2.5 <span>[ug/m^3]</span></h2><span data-chart-stats="pm25">--</span></div><div class="chart-legend" data-chart-legend="pm25"></div><canvas id="chart-pm25" data-chart="pm25" role="img" aria-label="Interactive particulate matter 2.5 chart"></canvas></article>
-      <article class="chart-card" data-chart-card="vocLight"><div class="chart-heading"><h2>Figaro 2600 Light VOC <span>[ADU]</span></h2><span data-chart-stats="vocLight">--</span></div><div class="chart-legend" data-chart-legend="vocLight"></div><canvas id="chart-vocLight" data-chart="vocLight" role="img" aria-label="Interactive light VOC chart"></canvas></article>
-      <article class="chart-card" data-chart-card="vocHeavy"><div class="chart-heading"><h2>Figaro 2602 Heavy VOC <span>[ADU]</span></h2><span data-chart-stats="vocHeavy">--</span></div><div class="chart-legend" data-chart-legend="vocHeavy"></div><canvas id="chart-vocHeavy" data-chart="vocHeavy" role="img" aria-label="Interactive heavy VOC chart"></canvas></article>
+      <article class="chart-card" data-chart-card="soil"><div class="chart-heading"><h2>Soil <span>[ADU]</span></h2><span data-chart-stats="soil">--</span></div><div class="chart-legend" data-chart-legend="soil"></div><canvas id="chart-soil" data-chart="soil" role="img" aria-label="Interactive soil chart"></canvas></article>
+      <article class="chart-card" data-chart-card="light"><div class="chart-heading"><h2>Visible and Infrared Light <span>[ADU]</span></h2><span data-chart-stats="light">--</span></div><div class="chart-legend" data-chart-legend="light"></div><canvas id="chart-light" data-chart="light" role="img" aria-label="Interactive visible and infrared light chart"></canvas></article>
+      <article class="chart-card" data-chart-card="uv"><div class="chart-heading"><h2>UV Index</h2><span data-chart-stats="uv">--</span></div><div class="chart-legend" data-chart-legend="uv"></div><canvas id="chart-uv" data-chart="uv" role="img" aria-label="Interactive UV index chart"></canvas></article>
     </section>
 
     <section class="export-actions" aria-label="Export graph view">
@@ -133,10 +129,11 @@
   <script type="module" src="../../../assets/js/core/site.js"></script>
   <script>
     window.HAQ_DATA_PLOTTER_CONFIG = {
-      preset: "aqiq",
-      programName: "AQIQ",
-      exportTitle: "AQIQ Dual-POD Data Visualization",
-      filePrefix: "aqiq-plots"
+      preset: "sqiq",
+      podType: "SPOD",
+      programName: "SQIQ",
+      exportTitle: "SQIQ Dual-SPOD Data Visualization",
+      filePrefix: "sqiq-plots"
     };
   </script>
   <script type="module" src="../../../assets/js/viewers/data-plotter.js"></script>

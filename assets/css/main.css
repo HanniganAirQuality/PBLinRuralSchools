@@ -220,11 +220,31 @@ p {
 }
 
 .program-card {
+  position: relative;
   min-height: 13rem;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.program-card > :not(.program-art) {
+  position: relative;
+  z-index: 1;
+}
+
+.program-art {
+  position: absolute;
+  top: 50%;
+  right: 0.35rem;
+  width: min(72%, 10rem);
+  height: min(72%, 10rem);
+  object-fit: contain;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(12%, -50%) scale(0.88) rotate(3deg);
+  transition: opacity 180ms ease, transform 220ms ease;
 }
 
 .program-card:hover,
@@ -243,6 +263,26 @@ p {
 .program-card:hover,
 .program-card:focus-visible {
   transform: translateY(-2px);
+}
+
+.program-card:hover .program-art,
+.program-card:focus-visible .program-art {
+  opacity: 0.78;
+  transform: translate(4%, -50%) scale(1) rotate(0deg);
+}
+
+@media (hover: none) {
+  .program-art {
+    opacity: 0.18;
+    transform: translate(4%, -50%) scale(1) rotate(0deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .program-card,
+  .program-art {
+    transition: none;
+  }
 }
 
 .program-card.is-disabled {
@@ -785,6 +825,25 @@ input {
   box-shadow: 0 14px 34px var(--shadow-soft);
 }
 
+.plot-view-controls {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.plot-view-controls .control-group {
+  min-width: min(100%, 13rem);
+}
+
+.chart-zoom-control {
+  flex: 1 1 16rem;
+}
+
+.chart-zoom-control input {
+  width: 100%;
+}
+
 .plot-toggles {
   min-width: 0;
   margin: 0;
@@ -869,6 +928,13 @@ input {
   height: calc(100dvh - 1rem);
   grid-template-columns: 1fr;
   grid-template-rows: repeat(3, minmax(7rem, 1fr));
+}
+
+.aqiq-data-chart-grid,
+.sqiq-data-chart-grid {
+  height: auto;
+  grid-template-rows: none;
+  grid-auto-rows: minmax(15rem, 32vh);
 }
 
 .chart-card {

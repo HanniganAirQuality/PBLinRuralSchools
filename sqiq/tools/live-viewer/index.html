@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SQIQ Live Viewer | HAQ Lab PBL</title>
+  <link rel="stylesheet" href="../../../assets/css/main.css">
+</head>
+<body class="tool-page live-viewer-page theme-sqiq">
+  <header class="site-header">
+    <a class="brand" href="../../../">HAQ Lab PBL</a>
+    <nav class="site-nav" aria-label="Tool navigation">
+      <a href="../../">SQIQ hub</a>
+      <a href="../data-plotter/">Data Visualization</a>
+    </nav>
+  </header>
+
+  <main class="live-shell" data-live-viewer>
+    <section class="live-header" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">SQIQ live viewer</p>
+        <h1 id="page-title">SPOD Live Visualization</h1>
+      </div>
+    </section>
+
+    <section class="live-controls" aria-label="Live viewer controls">
+      <button class="primary-action" type="button" data-connect>Connect</button>
+      <button type="button" data-disconnect disabled>Disconnect</button>
+      <button type="button" data-reset>Reset</button>
+      <div class="connection-status" data-connection-status aria-live="polite">Idle</div>
+    </section>
+
+    <details class="advanced-settings">
+      <summary>Advanced settings</summary>
+      <div class="advanced-grid">
+        <label class="control-group" for="yaml-version">
+          <span class="setting-label">YAML version <span class="setting-help" tabindex="0" aria-label="YAML version help" data-help="Choose the SPOD firmware schema used to interpret incoming serial rows.">?</span></span>
+          <select id="yaml-version" data-yaml-version></select>
+        </label>
+        <label class="control-group" for="yaml-section">
+          <span class="setting-label">YAML type <span class="setting-help" tabindex="0" aria-label="YAML type help" data-help="Choose which data section from the selected SPOD version maps column names and units.">?</span></span>
+          <select id="yaml-section" data-yaml-section></select>
+        </label>
+        <div class="schema-card advanced-schema-card" aria-live="polite">
+          <span class="schema-label">YAML source <span class="setting-help" tabindex="0" aria-label="YAML source help" data-help="Shows the SPOD schema supplying column names, units, and default axis ranges.">?</span></span>
+          <a data-schema-link href="https://github.com/HanniganAirQuality/All-POD-YAMLs/blob/main/SPOD_HeaderLog.yaml">SPOD_HeaderLog.yaml</a>
+          <span data-schema-status>Loading SPOD schema...</span>
+        </div>
+        <label class="control-group" for="timeline-minutes">
+          <span class="setting-label">Timeline size (min) <span class="setting-help" tabindex="0" aria-label="Timeline size help" data-help="Set how many recent minutes remain visible in the live plots.">?</span></span>
+          <input id="timeline-minutes" type="number" min="0.25" max="1440" step="0.25" value="10" data-timeline-minutes>
+        </label>
+      </div>
+
+      <div class="plot-settings">
+        <fieldset class="plot-toggles column-toggles">
+          <legend class="setting-legend">Columns <span class="setting-help" tabindex="0" aria-label="Columns help" data-help="Select extra SPOD YAML columns to add as live plots.">?</span></legend>
+          <div data-column-toggles></div>
+        </fieldset>
+      </div>
+
+      <section class="serial-readout" aria-label="Serial readout">
+        <div class="serial-panel"><span>Rows</span><strong data-row-count>0</strong></div>
+        <div class="serial-panel"><span>Last plot time</span><strong data-last-time>--</strong></div>
+        <div class="serial-panel raw-line-panel"><span>Latest row</span><code data-latest-line>--</code></div>
+        <div class="serial-panel debug-panel"><span>Debug values</span><div class="debug-value-grid" data-debug-values></div></div>
+      </section>
+    </details>
+
+    <section class="plot-settings basic-plot-settings" aria-label="Basic plot selection">
+      <fieldset class="plot-toggles">
+        <legend class="setting-legend">Plots shown <span class="setting-help" tabindex="0" aria-label="Plots shown help" data-help="Choose which standard SQIQ live plots are visible.">?</span></legend>
+        <label><input type="checkbox" data-plot-toggle value="temperature" checked> Temperature</label>
+        <label><input type="checkbox" data-plot-toggle value="co2" checked> Carbon Dioxide</label>
+        <label><input type="checkbox" data-plot-toggle value="soil" checked> Soil</label>
+        <label><input type="checkbox" data-plot-toggle value="light" checked> Visible and Infrared Light</label>
+        <label><input type="checkbox" data-plot-toggle value="uv" checked> UV Index</label>
+      </fieldset>
+    </section>
+
+    <section class="metric-strip" aria-label="Latest readings">
+      <article class="metric-card"><span>Temperature 1</span><strong data-metric="temperature1">--</strong></article>
+      <article class="metric-card"><span>Temperature 2</span><strong data-metric="temperature2">--</strong></article>
+      <article class="metric-card"><span>Carbon Dioxide</span><strong data-metric="co2">--</strong></article>
+      <article class="metric-card"><span>Soil</span><strong data-metric="soil">--</strong></article>
+      <article class="metric-card"><span>Visible Light</span><strong data-metric="visible">--</strong></article>
+      <article class="metric-card"><span>Infrared Light</span><strong data-metric="infrared">--</strong></article>
+      <article class="metric-card"><span>UV Index</span><strong data-metric="uv">--</strong></article>
+    </section>
+
+    <section class="chart-grid" aria-label="Live SQIQ charts">
+      <article class="chart-card" data-chart-card="temperature">
+        <div class="chart-heading"><div><h2>Temperature</h2></div><span data-chart-stats="temperature">--</span></div>
+        <div class="chart-legend" data-chart-legend="temperature"></div>
+        <canvas id="chart-temperature" data-chart="temperature"></canvas>
+      </article>
+      <article class="chart-card" data-chart-card="co2">
+        <div class="chart-heading"><div><h2>Carbon Dioxide</h2></div><span data-chart-stats="co2">--</span></div>
+        <canvas id="chart-co2" data-chart="co2"></canvas>
+      </article>
+      <article class="chart-card" data-chart-card="soil">
+        <div class="chart-heading"><div><h2>Soil</h2></div><span data-chart-stats="soil">--</span></div>
+        <canvas id="chart-soil" data-chart="soil"></canvas>
+      </article>
+      <article class="chart-card" data-chart-card="light">
+        <div class="chart-heading"><div><h2>Light</h2></div><span data-chart-stats="light">--</span></div>
+        <div class="chart-legend" data-chart-legend="light"></div>
+        <canvas id="chart-light" data-chart="light"></canvas>
+      </article>
+      <article class="chart-card" data-chart-card="uv">
+        <div class="chart-heading"><div><h2>UV Index</h2></div><span data-chart-stats="uv">--</span></div>
+        <canvas id="chart-uv" data-chart="uv"></canvas>
+      </article>
+    </section>
+
+    <section class="export-actions" aria-label="Export graph view">
+      <button type="button" data-export-png>Export graph view PNG</button>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>HAQ Lab, University of Colorado</span>
+    <span data-current-year></span>
+  </footer>
+
+  <script type="module" src="../../../assets/js/core/site.js"></script>
+  <script type="module" src="../../../assets/js/core/setting-tooltips.js"></script>
+  <script type="module" src="../../../assets/js/viewers/sqiq-live-viewer.js"></script>
+</body>
+</html>

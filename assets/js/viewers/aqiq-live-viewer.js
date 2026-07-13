@@ -1,13 +1,20 @@
 import { showSafariLiveViewerWarning } from "../core/browser-warning.js";
 import { SerialLineReader } from "../core/serial-lines.js";
 import {
+  SPOD_HEADER_LOG_PAGE,
   YPOD_HEADER_LOG_PAGE,
   getPreferredYpodSection,
   getPreferredYpodVersion,
   getYpodSectionSchema,
+  loadSpodHeaderLogResource,
   loadYpodHeaderLogResource,
   resolveYpodSchemaForValues,
 } from "../core/ypod-yaml.js";
+
+const VIEWER_CONFIG = window.HAQ_LIVE_VIEWER_CONFIG || {};
+const IS_SPOD = VIEWER_CONFIG.podType === "SPOD";
+const POD_NAME = IS_SPOD ? "SPOD" : "YPOD";
+const POD_HEADER_LOG_PAGE = IS_SPOD ? SPOD_HEADER_LOG_PAGE : YPOD_HEADER_LOG_PAGE;
 
 const DEFAULT_BAUD_RATE = 9600;
 const DEFAULT_TIMELINE_MINUTES = 5;
@@ -40,7 +47,7 @@ const EXPORT_CHART_THEME = {
   invertSeries: false,
 };
 
-const FIELD_ALIASES = {
+const DEFAULT_FIELD_ALIASES = {
   timestamp: ["DateTime", "Timestamp", "Time"],
   temperature: ["Temperature", "SHT25_Temperature", "BME180_Temperature", "T"],
   humidity: ["Relative_Humidity", "SHT25_Humidity", "RH"],
@@ -50,8 +57,9 @@ const FIELD_ALIASES = {
   vocHeavy: ["Fig2602_HeavyVOC", "HeavyVOC", "heavyVOC"],
   co: ["CO", "Calibrated_CO"],
 };
+const FIELD_ALIASES = VIEWER_CONFIG.fieldAliases || DEFAULT_FIELD_ALIASES;
 
-const CHARTS = {
+const DEFAULT_CHARTS = {
   temperature: {
     canvas: "chart-temperature",
     stats: "temperature",
@@ -89,6 +97,16 @@ const CHARTS = {
     series: [{ key: "pm25", color: "#74ebda" }],
   },
 };
+const CHARTS = VIEWER_CONFIG.charts || DEFAULT_CHARTS;
+const DEFAULT_METRICS = {
+  temperature: ["temperature"],
+  humidity: ["humidity"],
+  co2: ["co2"],
+  pm25: ["pm25"],
+  voc: ["vocLight", "vocHeavy"],
+  co: ["co"],
+};
+const METRICS = VIEWER_CONFIG.metrics || DEFAULT_METRICS;
 
 const app = document.querySelector("[data-live-viewer]");
 const state = {
@@ -194,8 +212,10 @@ function captureChartCardBaseTitle(card) {
 }
 
 async function loadYamlSettings() {
-  query("[data-schema-status]").textContent = "Loading YPOD schema...";
-  state.yamlResource = await loadYpodHeaderLogResource();
+  query("[data-schema-status]").textContent = `Loading ${POD_NAME} schema...`;
+  state.yamlResource = IS_SPOD
+    ? await loadSpodHeaderLogResource()
+    : await loadYpodHeaderLogResource();
   populateVersionSelect();
   populateSectionSelect();
   applySelectedSchema();
@@ -277,7 +297,7 @@ function setActiveSchema(schema, { reset = false } = {}) {
   const schemaLink = query("[data-schema-link]");
   const schemaStatus = query("[data-schema-status]");
   state.schema = schema;
-  schemaLink.href = schema.htmlUrl || YPOD_HEADER_LOG_PAGE;
+  schemaLink.href = schema.htmlUrl || POD_HEADER_LOG_PAGE;
 
   const suffix = schema.isFallback ? "fallback" : `${schema.columns.length} columns`;
   schemaStatus.textContent = `${schema.version} ${schema.section}, ${suffix}`;
@@ -308,7 +328,7 @@ function renderColumnToggles() {
 
   state.schema?.columns
     ?.map((column, index) => ({ column, index }))
-    .filter((item) => !isTimestampColumn(item.column))
+    .filter((item) => isPlottableColumn(item.column))
     .forEach(({ column, index }) => {
       const label = document.createElement("label");
       const input = document.createElement("input");
@@ -1156,18 +1176,18 @@ function mapSerialValues(values, rawLine, receivedAt = new Date()) {
     }
   });
 
+  const seriesValues = Object.fromEntries(
+    Object.entries(FIELD_ALIASES)
+      .filter(([key]) => key !== "timestamp")
+      .map(([key, aliases]) => [key, numberField(fields, aliases)]),
+  );
+
   return {
-    timestamp: receivedAt,
+    timestamp: parseRecordTimestamp(fields, receivedAt),
     rawLine,
     fields,
     values: {
-      temperature: numberField(fields, FIELD_ALIASES.temperature),
-      humidity: numberField(fields, FIELD_ALIASES.humidity),
-      co2: numberField(fields, FIELD_ALIASES.co2),
-      pm25: numberField(fields, FIELD_ALIASES.pm25),
-      vocLight: numberField(fields, FIELD_ALIASES.vocLight),
-      vocHeavy: numberField(fields, FIELD_ALIASES.vocHeavy),
-      co: numberField(fields, FIELD_ALIASES.co),
+      ...seriesValues,
       ...numericValues,
     },
   };
@@ -1208,7 +1228,33 @@ function parseCsvLine(line) {
 
 function isHeaderRow(values) {
   const first = values[0]?.toLowerCase() || "";
-  return first === "datetime" || first === "timestamp";
+  return first === "datetime" || first === "timestamp" || first === "spodid";
+}
+
+function parseRecordTimestamp(fields, fallback) {
+  const dateTime = getField(fields, FIELD_ALIASES.timestamp || ["DateTime", "Timestamp"]);
+
+  if (dateTime) {
+    const parsed = new Date(dateTime);
+    return Number.isFinite(parsed.getTime()) ? parsed : fallback;
+  }
+
+  const dateParts = String(fields.Date || "").match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  const timeParts = String(fields.Time || "").match(/^(\d{1,2}):(\d{1,2}):(\d{1,2})$/);
+
+  if (!dateParts || !timeParts) {
+    return fallback;
+  }
+
+  const parsed = new Date(
+    Number(dateParts[1]),
+    Number(dateParts[2]) - 1,
+    Number(dateParts[3]),
+    Number(timeParts[1]),
+    Number(timeParts[2]),
+    Number(timeParts[3]),
+  );
+  return Number.isFinite(parsed.getTime()) ? parsed : fallback;
 }
 
 function isCsvLikeLine(line, values = parseCsvLine(line)) {
@@ -1259,16 +1305,10 @@ function updateReadout(record) {
   query("[data-last-time]").textContent = formatTime(record.timestamp);
   renderDebugValues(record);
 
-  setSeriesMetric("temperature", "temperature", record.values.temperature);
-  setSeriesMetric("humidity", "humidity", record.values.humidity);
-  setSeriesMetric("co2", "co2", record.values.co2);
-  setSeriesMetric("pm25", "pm25", record.values.pm25);
-  setSeriesMetric(
-    "voc",
-    Number.isFinite(record.values.vocLight) ? "vocLight" : "vocHeavy",
-    firstFinite(record.values.vocLight, record.values.vocHeavy),
-  );
-  setSeriesMetric("co", "co", record.values.co);
+  Object.entries(METRICS).forEach(([metricName, seriesKeys]) => {
+    const seriesKey = seriesKeys.find((key) => Number.isFinite(record.values[key])) || seriesKeys[0];
+    setSeriesMetric(metricName, seriesKey, firstFinite(...seriesKeys.map((key) => record.values[key])));
+  });
 }
 
 function updateRawDebugReadout(line, values) {
@@ -1300,6 +1340,10 @@ function renderDebugValues(record = null, values = null) {
 
 function setMetric(name, value, unit) {
   const target = query(`[data-metric="${name}"]`);
+  if (!target) {
+    return;
+  }
+
   target.textContent = Number.isFinite(value) ? `${formatNumber(value)} ${unit}`.trim() : "--";
 }
 
@@ -1578,7 +1622,7 @@ function drawExportHeader(context, width, padding) {
   const schemaStatus = query("[data-schema-status]").textContent;
   context.fillStyle = "#17202a";
   context.font = "700 22px Arial, Helvetica, sans-serif";
-  context.fillText("AQIQ YPOD Live Visualization", padding, 34);
+  context.fillText(VIEWER_CONFIG.exportTitle || "AQIQ YPOD Live Visualization", padding, 34);
 
   context.fillStyle = "#5c6672";
   context.font = "13px Arial, Helvetica, sans-serif";
@@ -2352,7 +2396,13 @@ function isValidAxisRange(range) {
 
 function isTimestampColumn(column) {
   const aliases = FIELD_ALIASES.timestamp.map((alias) => alias.toLowerCase());
-  return column.unit === "timestamp" || aliases.includes(column.name.toLowerCase());
+  return ["timestamp", "date", "time"].includes(column.unit.toLowerCase()) ||
+    aliases.includes(column.name.toLowerCase());
+}
+
+function isPlottableColumn(column) {
+  const nonNumericUnits = new Set(["", "na", "id", "timestamp", "date", "time"]);
+  return !isTimestampColumn(column) && !nonNumericUnits.has(column.unit.toLowerCase());
 }
 
 function clampNumber(value, min, max, fallback) {

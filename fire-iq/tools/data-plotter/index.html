@@ -118,6 +118,20 @@
         <label><input type="checkbox" data-plot-toggle value="co2" checked> CO2</label>
         <label><input type="checkbox" data-plot-toggle value="pm25" checked> PM2.5</label>
       </fieldset>
+      <div class="plot-view-controls">
+        <label class="control-group" for="time-mode">
+          <span>Time alignment</span>
+          <select id="time-mode" data-time-mode>
+            <option value="elapsed" selected>Elapsed from start</option>
+            <option value="absolute">Recorded date and time</option>
+          </select>
+        </label>
+        <label class="control-group chart-zoom-control" for="chart-zoom">
+          <span>Horizontal zoom (latest data): <output for="chart-zoom" data-chart-zoom-label>1×</output></span>
+          <input id="chart-zoom" type="range" min="1" max="16" step="1" value="1" data-chart-zoom>
+        </label>
+        <button type="button" data-reset-zoom disabled>Reset zoom</button>
+      </div>
     </section>
 
     <section class="metric-strip" aria-label="Latest readings">
@@ -156,7 +170,7 @@
           <span data-chart-stats="co">--</span>
         </div>
         <div class="chart-legend" data-chart-legend="co"></div>
-        <canvas id="chart-co" data-chart="co"></canvas>
+        <canvas id="chart-co" data-chart="co" role="img" aria-label="Interactive carbon monoxide chart. Hover over a point to inspect its value."></canvas>
       </article>
 
       <article class="chart-card" data-chart-card="co2">
@@ -167,7 +181,7 @@
           <span data-chart-stats="co2">--</span>
         </div>
         <div class="chart-legend" data-chart-legend="co2"></div>
-        <canvas id="chart-co2" data-chart="co2"></canvas>
+        <canvas id="chart-co2" data-chart="co2" role="img" aria-label="Interactive carbon dioxide chart. Hover over a point to inspect its value."></canvas>
       </article>
 
       <article class="chart-card" data-chart-card="pm25">
@@ -178,7 +192,7 @@
           <span data-chart-stats="pm25">--</span>
         </div>
         <div class="chart-legend" data-chart-legend="pm25"></div>
-        <canvas id="chart-pm25" data-chart="pm25"></canvas>
+        <canvas id="chart-pm25" data-chart="pm25" role="img" aria-label="Interactive particulate matter 2.5 chart. Hover over a point to inspect its value."></canvas>
       </article>
     </section>
 

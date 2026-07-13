@@ -1,24 +1,31 @@
-// Fire-IQ Data Plotter — loads YPOD CSV logs and plots CO / CO2 / PM2.5
-// for up to two pods. Column-to-pollutant mapping is driven by the YPOD
-// header-log YAML (firmware version + section), shared with the Live Viewer
-// via core/ypod-yaml.js.
-import { showSafariLiveViewerWarning } from "../core/browser-warning.js";
-import { SerialLineReader } from "../core/serial-lines.js";
+// Shared POD CSV plotting engine. Program configuration selects YPOD or SPOD
+// schemas and the measurement charts shown for up to two devices.
 import {
+  SPOD_HEADER_LOG_PAGE,
   YPOD_HEADER_LOG_PAGE,
   getPreferredYpodSection,
   getPreferredYpodVersion,
   getYpodSectionSchema,
+  loadSpodHeaderLogResource,
   loadYpodHeaderLogResource,
   resolveYpodSchemaForValues,
 } from "../core/ypod-yaml.js";
 
+const PLOTTER_CONFIG = window.HAQ_DATA_PLOTTER_CONFIG || {};
+const PROGRAM_NAME = PLOTTER_CONFIG.programName || "Fire-IQ";
+const IS_SPOD = PLOTTER_CONFIG.podType === "SPOD";
+const POD_NAME = IS_SPOD ? "SPOD" : "YPOD";
+const POD_HEADER_LOG_PAGE = IS_SPOD ? SPOD_HEADER_LOG_PAGE : YPOD_HEADER_LOG_PAGE;
 const DEFAULT_WINDOW_MINUTES = 0; // 0 = show entire file
 const MAX_WINDOW_MINUTES = 1440;
 const MIN_CHART_WIDTH = 220;
 const MIN_CHART_HEIGHT = 104;
 const POINT_RADIUS = 2.3;
 const MAX_POINT_MARKERS = 240; // skip per-sample dots on dense files
+const HOVER_RADIUS = 12;
+const MAX_RENDERED_POINTS_PER_PIXEL = 2;
+const MIN_RENDERED_POINTS = 240;
+const MAX_ZOOM = 16;
 const EXPORT_CHART_THEME = {
   background: "#ffffff",
   grid: "#d9dee6",
@@ -32,7 +39,7 @@ const POD_COLORS = {
   pod1: "#f46703",
   pod2: "#efad3c",
 };
-const FIELD_ALIASES = {
+const FIREIQ_FIELD_ALIASES = {
   timestamp: ["DateTime", "Timestamp", "Time", "UnixTime", "Millis"],
   date: ["Date"],
   co: ["CO", "Calibrated_CO", "CO_ISB"],
@@ -40,7 +47,33 @@ const FIELD_ALIASES = {
   pm25: ["PM25_ENV", "PM2_5", "PM25", "PM2.5"],
 };
 
-const CHARTS = {
+const AQIQ_FIELD_ALIASES = {
+  ...FIREIQ_FIELD_ALIASES,
+  temperature: ["SHT25_Temperature", "BME180_Temperature", "Temperature", "T"],
+  humidity: ["SHT25_Humidity", "Relative_Humidity", "Humidity", "RH"],
+  vocLight: ["Fig2600_LightVOC", "LightVOC", "lightVOC"],
+  vocHeavy: ["Fig2602_HeavyVOC", "HeavyVOC", "heavyVOC"],
+};
+
+const SQIQ_FIELD_ALIASES = {
+  timestamp: ["DateTime", "Timestamp", "Time"],
+  date: ["Date"],
+  temperature1: ["Temperature1"],
+  temperature2: ["Temperature2"],
+  co2: ["CO2"],
+  soil: ["Soil"],
+  visible: ["Visible"],
+  infrared: ["Infrared"],
+  uv: ["UV_Index"],
+};
+
+const FIELD_ALIASES = PLOTTER_CONFIG.fieldAliases || (
+  PLOTTER_CONFIG.preset === "sqiq"
+    ? SQIQ_FIELD_ALIASES
+    : (PLOTTER_CONFIG.preset === "aqiq" ? AQIQ_FIELD_ALIASES : FIREIQ_FIELD_ALIASES)
+);
+
+const FIREIQ_CHARTS = {
   co: {
     canvas: "chart-co",
     stats: "co",
@@ -76,18 +109,82 @@ const CHARTS = {
   },
 };
 
-const app = document.querySelector("[data-fire-iq-data-plotter]");
+const AQIQ_CHARTS = {
+  temperature: makeDualPodChart("temperature", "Temperature", "Celsius"),
+  humidity: makeDualPodChart("humidity", "Relative Humidity", "%RH", true),
+  co2: makeDualPodChart("co2", "Carbon Dioxide", "ppm", true),
+  co: makeDualPodChart("co", "Carbon Monoxide", "ppm", true),
+  pm25: makeDualPodChart("pm25", "Particulate Matter 2.5", "ug/m^3", true),
+  vocLight: makeDualPodChart("vocLight", "Figaro 2600 Light VOC", "ADU", true),
+  vocHeavy: makeDualPodChart("vocHeavy", "Figaro 2602 Heavy VOC", "ADU", true),
+};
+
+const SQIQ_CHARTS = {
+  temperature: {
+    stats: "temperature",
+    title: "Temperature",
+    unit: "Celsius",
+    series: [
+      { podKey: "pod1", key: "temperature1", label: "Temperature 1", color: "#dc2626" },
+      { podKey: "pod1", key: "temperature2", label: "Temperature 2", color: "#f59e0b" },
+      { podKey: "pod2", key: "temperature1", label: "Temperature 1", color: "#2563eb" },
+      { podKey: "pod2", key: "temperature2", label: "Temperature 2", color: "#06b6d4" },
+    ],
+  },
+  co2: makeDualPodChart("co2", "Carbon Dioxide", "ppm", true),
+  soil: makeDualPodChart("soil", "Soil", "ADU", true),
+  light: {
+    stats: "light",
+    title: "Visible and Infrared Light",
+    unit: "ADU",
+    minZero: true,
+    series: [
+      { podKey: "pod1", key: "visible", label: "Visible", color: "#ca8a04" },
+      { podKey: "pod1", key: "infrared", label: "Infrared", color: "#7c3aed" },
+      { podKey: "pod2", key: "visible", label: "Visible", color: "#16a34a" },
+      { podKey: "pod2", key: "infrared", label: "Infrared", color: "#db2777" },
+    ],
+  },
+  uv: makeDualPodChart("uv", "UV Index", "UV index", true),
+};
+
+const CHARTS = PLOTTER_CONFIG.charts || (
+  PLOTTER_CONFIG.preset === "sqiq"
+    ? SQIQ_CHARTS
+    : (PLOTTER_CONFIG.preset === "aqiq" ? AQIQ_CHARTS : FIREIQ_CHARTS)
+);
+
+const app = document.querySelector(
+  "[data-pod-data-plotter], [data-ypod-data-plotter], [data-fire-iq-data-plotter]",
+);
 const state = {
   yamlResource: null,
   schema: null,
   displayWindowMs: DEFAULT_WINDOW_MINUTES * 60 * 1000,
+  timeMode: "elapsed",
+  zoomFactor: 1,
   podCount: 2,
   renderQueued: false,
+  hoverPoint: null,
   pods: {
-    pod1: makePodState("POD 1"),
-    pod2: makePodState("POD 2"),
+    pod1: makePodState(`${POD_NAME} 1`),
+    pod2: makePodState(`${POD_NAME} 2`),
   },
 };
+
+function makeDualPodChart(key, title, unit, minZero = false) {
+  return {
+    canvas: `chart-${key}`,
+    stats: key,
+    title,
+    unit,
+    minZero,
+    series: [
+      { podKey: "pod1", key, color: POD_COLORS.pod1 },
+      { podKey: "pod2", key, color: POD_COLORS.pod2 },
+    ],
+  };
+}
 
 if (app) {
   init();
@@ -130,7 +227,10 @@ function bindControls() {
     button.addEventListener("click", () => clearPod(button.dataset.clearPod));
   });
   app.querySelectorAll("[data-pod-id]").forEach((input) => {
-    input.addEventListener("input", queueRender);
+    input.addEventListener("input", () => {
+      clearChartHover();
+      queueRender();
+    });
   });
   app.querySelectorAll("[data-pod-count] input[name='pod-count']").forEach((radio) => {
     radio.addEventListener("change", () => setPodCount(Number(radio.value)));
@@ -140,20 +240,32 @@ function bindControls() {
   query("[data-yaml-version]").addEventListener("change", handleVersionChange);
   query("[data-yaml-section]").addEventListener("change", applySelectedSchema);
   query("[data-window-minutes]").addEventListener("input", handleWindowChange);
+  query("[data-time-mode]").addEventListener("change", handleTimeModeChange);
+  query("[data-chart-zoom]").addEventListener("input", handleZoomChange);
+  query("[data-reset-zoom]").addEventListener("click", resetZoom);
   app.querySelectorAll("[data-plot-toggle]").forEach((toggle) => {
     toggle.addEventListener("change", handlePlotToggle);
   });
-  window.addEventListener("resize", queueRender);
+  bindChartHover();
+  window.addEventListener("resize", () => {
+    clearChartHover();
+    queueRender();
+  });
   const colorScheme = window.matchMedia?.("(prefers-color-scheme: dark)");
-  colorScheme?.addEventListener?.("change", queueRender);
+  colorScheme?.addEventListener?.("change", () => {
+    clearChartHover();
+    queueRender();
+  });
 }
 
 // ---------------------------------------------------------------------------
 // YAML schema (firmware version -> column layout)
 // ---------------------------------------------------------------------------
 async function loadYamlSettings() {
-  query("[data-schema-status]").textContent = "Loading YPOD schema...";
-  state.yamlResource = await loadYpodHeaderLogResource();
+  query("[data-schema-status]").textContent = `Loading ${POD_NAME} schema...`;
+  state.yamlResource = IS_SPOD
+    ? await loadSpodHeaderLogResource()
+    : await loadYpodHeaderLogResource();
   populateVersionSelect();
   populateSectionSelect();
   applySelectedSchema();
@@ -224,7 +336,7 @@ function setActiveSchema(schema, { reparse = false } = {}) {
   const schemaLink = query("[data-schema-link]");
   const schemaStatus = query("[data-schema-status]");
   state.schema = schema;
-  schemaLink.href = schema.htmlUrl || YPOD_HEADER_LOG_PAGE;
+  schemaLink.href = schema.htmlUrl || POD_HEADER_LOG_PAGE;
 
   const suffix = schema.isFallback ? "fallback" : `${schema.columns.length} columns`;
   schemaStatus.textContent = `${schema.version} ${schema.section}, ${suffix}`;
@@ -245,6 +357,7 @@ function selectSchemaControls(schema) {
 }
 
 function reparseLoadedPods() {
+  clearChartHover();
   POD_KEYS.forEach((podKey) => {
     if (state.pods[podKey].rawText) {
       parsePodData(podKey);
@@ -288,10 +401,17 @@ function parsePodData(podKey) {
   pod.records = [];
   pod.skippedRows = 0;
   pod.firstDataLine = "";
+  const resolutionCache = new Map();
+  const linePattern = /[^\r\n]+/g;
+  let lineMatch;
 
-  const lines = pod.rawText.split(/\r?\n/).filter((line) => line.trim() !== "");
+  while ((lineMatch = linePattern.exec(pod.rawText)) !== null) {
+    const line = lineMatch[0];
 
-  for (const line of lines) {
+    if (!line.trim()) {
+      continue;
+    }
+
     const values = parseCsvLine(line);
 
     if (isHeaderRow(values)) {
@@ -307,7 +427,7 @@ function parsePodData(podKey) {
       pod.firstDataLine = line;
     }
 
-    const record = mapFileValues(values, line);
+    const record = mapFileValues(values, resolutionCache);
 
     if (record) {
       pod.records.push(record);
@@ -320,16 +440,23 @@ function parsePodData(podKey) {
   updateFileReadout(podKey);
 }
 
-function mapFileValues(values, rawLine) {
+function mapFileValues(values, resolutionCache = null) {
   if (!state.schema?.columns?.length || values.length === 0) {
     return null;
   }
 
-  const resolved = resolveYpodSchemaForValues(state.yamlResource, state.schema, values);
+  const cacheKey = getRowSchemaCacheKey(values);
+  const cachedSchema = resolutionCache?.get(cacheKey);
+  const cachedValues = cachedSchema ? normalizeValuesForColumns(values, cachedSchema.columns) : null;
+  const resolved = cachedValues
+    ? { schema: cachedSchema, values: cachedValues }
+    : resolveYpodSchemaForValues(state.yamlResource, state.schema, values);
 
   if (!resolved || !hasRequiredChartFields(resolved.schema)) {
     return null;
   }
+
+  resolutionCache?.set(cacheKey, resolved.schema);
 
   const { schema, values: normalizedValues } = resolved;
 
@@ -354,20 +481,42 @@ function mapFileValues(values, rawLine) {
 
   return {
     timestamp,
-    rawLine,
-    fields,
-    values: {
-      co: numberField(fields, FIELD_ALIASES.co),
-      co2: numberField(fields, FIELD_ALIASES.co2),
-      pm25: numberField(fields, FIELD_ALIASES.pm25),
-    },
+    values: Object.fromEntries(
+      getConfiguredFieldKeys().map((key) => [key, numberField(fields, FIELD_ALIASES[key] || [])]),
+    ),
   };
 }
 
+function getRowSchemaCacheKey(values) {
+  const firmware = values.find((value) =>
+    /[A-Za-z]+POD[\s_-]*V?\s*\d+[._-]\d+/i.test(String(value)),
+  );
+  return `${values.length}:${String(firmware || "").trim().toLowerCase()}`;
+}
+
+function normalizeValuesForColumns(values, columns) {
+  if (values.length === columns.length) {
+    return values;
+  }
+
+  if (values.length === columns.length + 1 && values[values.length - 1] === "") {
+    return values.slice(0, -1);
+  }
+
+  return null;
+}
+
 function hasRequiredChartFields(schema) {
-  return ["co", "co2", "pm25"].every((key) =>
+  return getConfiguredFieldKeys().some((key) =>
     Boolean(resolveColumnForField(key, schema.columns)),
   );
+}
+
+function getConfiguredFieldKeys() {
+  return [...new Set(
+    Object.values(CHARTS)
+      .flatMap((chart) => chart.series.map((series) => series.key)),
+  )];
 }
 
 function parseRecordTimestamp(fields) {
@@ -430,7 +579,13 @@ function getField(fields, aliases) {
 }
 
 function numberField(fields, aliases) {
-  const value = Number(getField(fields, aliases));
+  const rawValue = getField(fields, aliases);
+
+  if (rawValue === "" || rawValue === null || rawValue === undefined) {
+    return null;
+  }
+
+  const value = Number(rawValue);
   return Number.isFinite(value) ? value : null;
 }
 
@@ -473,7 +628,7 @@ function parseCsvLine(line) {
 
 function isHeaderRow(values) {
   const first = values[0]?.toLowerCase() || "";
-  return ["datetime", "timestamp", "date", "time", "unixtime", "millis"].includes(first);
+  return ["datetime", "timestamp", "date", "time", "unixtime", "millis", "spodid", "ypodid"].includes(first);
 }
 
 function isCsvLikeLine(line, values = parseCsvLine(line)) {
@@ -484,6 +639,7 @@ function isCsvLikeLine(line, values = parseCsvLine(line)) {
 // Pod controls & readouts
 // ---------------------------------------------------------------------------
 function setPodCount(count) {
+  clearChartHover();
   state.podCount = count === 1 ? 1 : 2;
   const singleMode = state.podCount === 1;
 
@@ -503,6 +659,7 @@ function activePodKeys() {
 }
 
 function clearPod(podKey) {
+  clearChartHover();
   state.pods[podKey] = makePodState(state.pods[podKey].label);
   setPodStatus(podKey, "No file loaded");
   updateFileReadout(podKey);
@@ -523,7 +680,7 @@ function updateFileReadout(podKey) {
   query(`[data-skipped-rows="${podKey}"]`).textContent = String(pod.skippedRows);
   query(`[data-first-line="${podKey}"]`).textContent = pod.firstDataLine || "--";
   query(`[data-time-span="${podKey}"]`).textContent =
-    first && last ? `${formatTime(first.timestamp)} → ${formatTime(last.timestamp)}` : "--";
+    first && last ? formatTimeSpan(first.timestamp, last.timestamp) : "--";
 }
 
 function handleWindowChange(event) {
@@ -534,10 +691,38 @@ function handleWindowChange(event) {
     DEFAULT_WINDOW_MINUTES,
   );
   state.displayWindowMs = minutes * 60 * 1000;
+  clearChartHover();
   queueRender();
 }
 
+function handleTimeModeChange(event) {
+  state.timeMode = event.target.value === "absolute" ? "absolute" : "elapsed";
+  clearChartHover();
+  queueRender();
+}
+
+function handleZoomChange(event) {
+  state.zoomFactor = clampNumber(Number(event.target.value), 1, MAX_ZOOM, 1);
+  updateZoomControls();
+  clearChartHover();
+  queueRender();
+}
+
+function resetZoom() {
+  state.zoomFactor = 1;
+  query("[data-chart-zoom]").value = "1";
+  updateZoomControls();
+  clearChartHover();
+  queueRender();
+}
+
+function updateZoomControls() {
+  query("[data-chart-zoom-label]").textContent = `${state.zoomFactor}×`;
+  query("[data-reset-zoom]").disabled = state.zoomFactor === 1;
+}
+
 function handlePlotToggle() {
+  clearChartHover();
   app.querySelectorAll("[data-chart-card]").forEach((card) => {
     const hidden = !isChartEnabled(card.dataset.chartCard);
     card.toggleAttribute("hidden", hidden);
@@ -562,13 +747,110 @@ function isChartEnabled(chartKey) {
   return !toggle || toggle.checked;
 }
 
+function handleChartPointerMove(event) {
+  const canvas = event.target instanceof Element
+    ? event.target.closest("canvas[data-chart]")
+    : null;
+
+  if (!canvas) {
+    clearChartHover();
+    return;
+  }
+
+  const card = canvas.closest("[data-chart-card]");
+  const chart = CHARTS[card?.dataset.chartCard];
+
+  if (!card || !chart) {
+    clearChartHover();
+    return;
+  }
+
+  const rect = canvas.getBoundingClientRect();
+  const pointer = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+  const hoverPoint = findNearestChartPoint(canvas, pointer);
+  const previousCanvasId = state.hoverPoint?.canvasId || "";
+
+  state.hoverPoint = hoverPoint ? { ...hoverPoint, canvasId: canvas.id } : null;
+  canvas.style.cursor = hoverPoint ? "crosshair" : "";
+  renderHoverOnCanvas(canvas, hoverPoint);
+
+  if (previousCanvasId && previousCanvasId !== canvas.id) {
+    restoreCanvasBase(query(".chart-grid")?.querySelector(`#${previousCanvasId}`));
+  }
+}
+
+function clearChartHover() {
+  const previousCanvasId = state.hoverPoint?.canvasId || "";
+  state.hoverPoint = null;
+
+  query(".chart-grid")?.querySelectorAll("canvas").forEach((canvas) => {
+    canvas.style.cursor = "";
+  });
+
+  if (previousCanvasId) {
+    restoreCanvasBase(query(".chart-grid")?.querySelector(`#${previousCanvasId}`));
+  }
+}
+
+function findNearestChartPoint(canvas, pointer) {
+  let nearest = null;
+  let nearestDistance = HOVER_RADIUS;
+
+  (canvas._fireIqHoverPoints || []).forEach((point) => {
+    const distance = Math.hypot(point.x - pointer.x, point.y - pointer.y);
+
+    if (distance <= nearestDistance) {
+      nearestDistance = distance;
+      nearest = point;
+    }
+  });
+
+  return nearest;
+}
+
+function renderHoverOnCanvas(canvas, hoverPoint) {
+  if (!canvas) {
+    return;
+  }
+
+  restoreCanvasBase(canvas);
+
+  if (!hoverPoint) {
+    return;
+  }
+
+  const rect = canvas.getBoundingClientRect();
+  const scale = window.devicePixelRatio || 1;
+  const context = canvas.getContext("2d");
+  context.setTransform(scale, 0, 0, scale, 0, 0);
+  drawHoverTooltip(
+    context,
+    hoverPoint,
+    Math.max(MIN_CHART_WIDTH, rect.width),
+    Math.max(MIN_CHART_HEIGHT, rect.height),
+    getLiveChartTheme(),
+  );
+}
+
+function restoreCanvasBase(canvas) {
+  if (!canvas?._fireIqBaseImage) {
+    return;
+  }
+
+  const context = canvas.getContext("2d");
+  context.save();
+  context.setTransform(1, 0, 0, 1, 0, 0);
+  context.putImageData(canvas._fireIqBaseImage, 0, 0);
+  context.restore();
+}
+
 // ---------------------------------------------------------------------------
 // Windowing
 // ---------------------------------------------------------------------------
 function visibleRecordsByPod() {
   const active = activePodKeys();
 
-  return Object.fromEntries(
+  const recordsByPod = Object.fromEntries(
     POD_KEYS.map((podKey) => {
       if (!active.includes(podKey)) {
         return [podKey, []];
@@ -589,6 +871,50 @@ function visibleRecordsByPod() {
       ];
     }),
   );
+
+  if (state.zoomFactor === 1) {
+    return recordsByPod;
+  }
+
+  const visibleRange = state.timeMode === "absolute"
+    ? getAbsoluteTimeRange(recordsByPod)
+    : getChartTimeRange(recordsByPod);
+
+  if (!visibleRange || visibleRange.min === visibleRange.max) {
+    return recordsByPod;
+  }
+
+  const cutoff = visibleRange.max - (visibleRange.max - visibleRange.min) / state.zoomFactor;
+  POD_KEYS.forEach((podKey) => {
+    recordsByPod[podKey] = recordsByPod[podKey]
+      .filter((record) => getRecordX(record, podKey) >= cutoff);
+  });
+  return recordsByPod;
+}
+
+function getAbsoluteTimeRange(recordsByPod) {
+  let min = Infinity;
+  let max = -Infinity;
+
+  POD_KEYS.forEach((podKey) => {
+    recordsByPod[podKey].forEach((record) => {
+      const value = record.timestamp.getTime();
+      min = Math.min(min, value);
+      max = Math.max(max, value);
+    });
+  });
+
+  return Number.isFinite(min) && Number.isFinite(max) ? { min, max } : null;
+}
+
+function getRecordX(record, podKey) {
+  if (state.timeMode === "absolute") {
+    return record.timestamp.getTime();
+  }
+
+  const first = state.pods[podKey].records[0];
+  const start = first ? first.timestamp.getTime() : record.timestamp.getTime();
+  return record.timestamp.getTime() - start;
 }
 
 // ---------------------------------------------------------------------------
@@ -607,8 +933,9 @@ function queueRender() {
 }
 
 function renderAll() {
+  const recordsByPod = visibleRecordsByPod();
   updateLegends();
-  updateMetrics();
+  updateMetrics(recordsByPod);
 
   query(".chart-grid")
     .querySelectorAll(".chart-card")
@@ -624,12 +951,12 @@ function renderAll() {
       card.setAttribute("aria-hidden", String(hidden));
 
       if (!hidden) {
-        renderChart(card, chart);
+        renderChart(card, chart, recordsByPod);
       }
     });
 }
 
-function renderChart(card, chart) {
+function renderChart(card, chart, recordsByPod = visibleRecordsByPod()) {
   const canvas = card.querySelector("canvas");
   const rect = canvas.getBoundingClientRect();
 
@@ -639,6 +966,8 @@ function renderChart(card, chart) {
     scale: window.devicePixelRatio || 1,
     theme: getLiveChartTheme(),
     updateStats: true,
+    recordsByPod,
+    hoverPoint: state.hoverPoint?.canvasId === canvas.id ? state.hoverPoint : null,
   });
 }
 
@@ -648,6 +977,8 @@ function renderChartCanvas(canvas, chart, {
   scale = 1,
   theme,
   updateStats = false,
+  recordsByPod = visibleRecordsByPod(),
+  hoverPoint = null,
 }) {
   const context = canvas.getContext("2d");
   const chartUnit = getChartUnit(chart);
@@ -658,18 +989,15 @@ function renderChartCanvas(canvas, chart, {
   context.clearRect(0, 0, width, height);
   context.fillStyle = theme.background;
   context.fillRect(0, 0, width, height);
+  canvas._fireIqHoverPoints = [];
 
-  const recordsByPod = visibleRecordsByPod();
-  const seriesValues = chart.series.flatMap((series) =>
-    recordsByPod[series.podKey]
-      .map((record) => record.values[series.key])
-      .filter((value) => Number.isFinite(value)),
-  );
-  const visibleRecords = POD_KEYS.flatMap((podKey) => recordsByPod[podKey]);
+  const valueRange = getChartValueRange(chart, recordsByPod);
+  const timeRange = getChartTimeRange(recordsByPod);
 
-  if (visibleRecords.length === 0 || seriesValues.length === 0) {
+  if (!timeRange || !valueRange) {
     drawEmptyChart(context, width, theme);
     if (updateStats) {
+      canvas._fireIqBaseImage = context.getImageData(0, 0, canvas.width, canvas.height);
       query(`[data-chart-stats="${chart.stats}"]`).textContent = "--";
     }
     return;
@@ -681,33 +1009,97 @@ function renderChartCanvas(canvas, chart, {
     top: chartUnit ? 24 : 12,
     bottom: height - 28,
   };
-  const times = visibleRecords.map((record) => record.timestamp.getTime());
-  let xMin = Math.min(...times);
-  let xMax = Math.max(...times);
+  let { min: xMin, max: xMax } = timeRange;
 
   if (xMin === xMax) {
     xMin -= 30000;
     xMax += 30000;
   }
 
-  const yRange = getYRange(seriesValues, chart.minZero);
+  const yRange = getYRangeFromBounds(valueRange.min, valueRange.max, chart.minZero);
 
   drawGrid(context, plot, width, height, xMin, xMax, yRange, theme, {
     leftLabel: chartUnit,
   });
 
+  const hoverPoints = [];
   chart.series.forEach((series) => {
-    drawSeries(context, recordsByPod[series.podKey], series, plot, xMin, xMax, yRange, theme);
+    const renderedRecords = drawSeries(
+      context,
+      recordsByPod[series.podKey],
+      series,
+      plot,
+      xMin,
+      xMax,
+      yRange,
+      theme,
+    );
+
+    renderedRecords.forEach((record) => {
+      const value = record.values[series.key];
+      hoverPoints.push({
+        x: scaleValue(getRecordX(record, series.podKey), xMin, xMax, plot.left, plot.right),
+        y: scaleValue(value, yRange.min, yRange.max, plot.bottom, plot.top),
+        value,
+        timestamp: record.timestamp,
+        elapsedMs: getRecordX(record, series.podKey),
+        label: `${getPodDisplayName(series.podKey)} — ${series.label || chart.title}`,
+        unit: getChartUnit(chart),
+        color: getSeriesColor(series, theme),
+      });
+    });
   });
+
+  if (updateStats) {
+    canvas._fireIqHoverPoints = hoverPoints;
+    canvas._fireIqBaseImage = context.getImageData(0, 0, canvas.width, canvas.height);
+  }
+
+  if (hoverPoint) {
+    drawHoverTooltip(context, hoverPoint, width, height, theme);
+  }
 
   if (updateStats) {
     updateChartStats(chart, recordsByPod);
   }
 }
 
-function getYRange(values, minZero = false) {
-  let min = Math.min(...values);
-  let max = Math.max(...values);
+function getChartTimeRange(recordsByPod) {
+  let min = Infinity;
+  let max = -Infinity;
+
+  POD_KEYS.forEach((podKey) => {
+    recordsByPod[podKey].forEach((record) => {
+      const value = getRecordX(record, podKey);
+      min = Math.min(min, value);
+      max = Math.max(max, value);
+    });
+  });
+
+  return Number.isFinite(min) && Number.isFinite(max) ? { min, max } : null;
+}
+
+function getChartValueRange(chart, recordsByPod) {
+  let min = Infinity;
+  let max = -Infinity;
+
+  chart.series.forEach((series) => {
+    recordsByPod[series.podKey].forEach((record) => {
+      const value = record.values[series.key];
+
+      if (Number.isFinite(value)) {
+        min = Math.min(min, value);
+        max = Math.max(max, value);
+      }
+    });
+  });
+
+  return Number.isFinite(min) && Number.isFinite(max) ? { min, max } : null;
+}
+
+function getYRangeFromBounds(lower, upper, minZero = false) {
+  let min = lower;
+  let max = upper;
 
   if (minZero) {
     min = Math.min(0, min);
@@ -759,8 +1151,8 @@ function drawGrid(context, plot, width, height, xMin, xMax, yRange, theme, { lef
     context.lineTo(x, plot.bottom);
     context.stroke();
 
-    const time = new Date(xMin + (xMax - xMin) * ratio);
-    drawCenteredXAxisLabel(context, formatTime(time), x, width, height - 9);
+    const timeValue = xMin + (xMax - xMin) * ratio;
+    drawCenteredXAxisLabel(context, formatXAxisValue(timeValue, xMin, xMax), x, width, height - 9);
   }
 
   context.textAlign = "left";
@@ -778,42 +1170,114 @@ function drawCenteredXAxisLabel(context, label, x, width, y) {
 }
 
 function drawSeries(context, records, series, plot, xMin, xMax, yRange, theme) {
-  const usableRecords = records.filter((record) => Number.isFinite(record.values[series.key]));
+  const segments = finiteRecordSegments(records, series.key);
+  const usableCount = segments.reduce((sum, segment) => sum + segment.length, 0);
 
-  if (usableRecords.length === 0) {
-    return;
+  if (usableCount === 0) {
+    return [];
   }
 
   const color = getSeriesColor(series, theme);
+  const maxPoints = Math.max(
+    MIN_RENDERED_POINTS,
+    Math.floor((plot.right - plot.left) * MAX_RENDERED_POINTS_PER_PIXEL),
+  );
+  const renderedSegments = segments.map((segment) =>
+    decimateRecords(segment, series.key, Math.max(2, Math.floor(maxPoints * segment.length / usableCount))),
+  );
+  const renderedCount = renderedSegments.reduce((sum, segment) => sum + segment.length, 0);
   context.strokeStyle = color;
   context.lineWidth = 2;
   context.beginPath();
 
-  usableRecords.forEach((record, index) => {
-    const x = scaleValue(record.timestamp.getTime(), xMin, xMax, plot.left, plot.right);
-    const y = scaleValue(record.values[series.key], yRange.min, yRange.max, plot.bottom, plot.top);
+  renderedSegments.forEach((segment) => {
+    segment.forEach((record, index) => {
+      const x = scaleValue(getRecordX(record, series.podKey), xMin, xMax, plot.left, plot.right);
+      const y = scaleValue(record.values[series.key], yRange.min, yRange.max, plot.bottom, plot.top);
 
-    if (index === 0) {
-      context.moveTo(x, y);
-    } else {
-      context.lineTo(x, y);
-    }
+      if (index === 0) {
+        context.moveTo(x, y);
+      } else {
+        context.lineTo(x, y);
+      }
+    });
   });
 
   context.stroke();
 
-  if (usableRecords.length > MAX_POINT_MARKERS) {
-    return;
+  if (renderedCount > MAX_POINT_MARKERS) {
+    return renderedSegments.flat();
   }
 
   context.fillStyle = color;
-  usableRecords.forEach((record) => {
-    const x = scaleValue(record.timestamp.getTime(), xMin, xMax, plot.left, plot.right);
-    const y = scaleValue(record.values[series.key], yRange.min, yRange.max, plot.bottom, plot.top);
-    context.beginPath();
-    context.arc(x, y, POINT_RADIUS, 0, Math.PI * 2);
-    context.fill();
+  renderedSegments.forEach((segment) => {
+    segment.forEach((record) => {
+      const x = scaleValue(getRecordX(record, series.podKey), xMin, xMax, plot.left, plot.right);
+      const y = scaleValue(record.values[series.key], yRange.min, yRange.max, plot.bottom, plot.top);
+      context.beginPath();
+      context.arc(x, y, POINT_RADIUS, 0, Math.PI * 2);
+      context.fill();
+    });
   });
+  return renderedSegments.flat();
+}
+
+function finiteRecordSegments(records, seriesKey) {
+  const segments = [];
+  let current = [];
+
+  records.forEach((record) => {
+    if (Number.isFinite(record.values[seriesKey])) {
+      current.push(record);
+      return;
+    }
+
+    if (current.length) {
+      segments.push(current);
+      current = [];
+    }
+  });
+
+  if (current.length) {
+    segments.push(current);
+  }
+
+  return segments;
+}
+
+function decimateRecords(records, seriesKey, maxPoints) {
+  if (records.length <= maxPoints) {
+    return records;
+  }
+
+  const bucketSize = Math.max(1, Math.ceil(records.length / Math.max(1, Math.floor(maxPoints / 2))));
+  const result = [];
+
+  for (let start = 0; start < records.length; start += bucketSize) {
+    const end = Math.min(records.length, start + bucketSize);
+    let minRecord = records[start];
+    let maxRecord = records[start];
+
+    for (let index = start + 1; index < end; index += 1) {
+      const record = records[index];
+      if (record.values[seriesKey] < minRecord.values[seriesKey]) {
+        minRecord = record;
+      }
+      if (record.values[seriesKey] > maxRecord.values[seriesKey]) {
+        maxRecord = record;
+      }
+    }
+
+    if (minRecord.timestamp <= maxRecord.timestamp) {
+      result.push(minRecord);
+      if (maxRecord !== minRecord) result.push(maxRecord);
+    } else {
+      result.push(maxRecord);
+      if (maxRecord !== minRecord) result.push(minRecord);
+    }
+  }
+
+  return result;
 }
 
 function drawEmptyChart(context, width, theme) {
@@ -833,42 +1297,109 @@ function drawEmptyChart(context, width, theme) {
   context.fillText("No data loaded", 14, 24);
 }
 
+function drawHoverTooltip(context, point, width, height, theme) {
+  const lines = [
+    point.label,
+    `${formatExactNumber(point.value)}${point.unit ? ` ${point.unit}` : ""}`,
+    `Elapsed ${formatElapsed(point.elapsedMs)}`,
+    formatDateTime(point.timestamp),
+  ];
+  const padding = 8;
+  const lineHeight = 15;
+  context.save();
+  context.font = "12px Arial, Helvetica, sans-serif";
+  let longestLine = 0;
+  lines.forEach((line) => {
+    longestLine = Math.max(longestLine, context.measureText(line).width);
+  });
+  const tooltipWidth = Math.ceil(longestLine + padding * 2);
+  const tooltipHeight = padding * 2 + lineHeight * lines.length;
+  const x = clampNumber(point.x + 12, 4, width - tooltipWidth - 4, 4);
+  const y = clampNumber(point.y - tooltipHeight - 12, 4, height - tooltipHeight - 4, 4);
+
+  context.strokeStyle = point.color;
+  context.lineWidth = 2;
+  context.fillStyle = theme.background;
+  context.beginPath();
+  context.arc(point.x, point.y, POINT_RADIUS + 3, 0, Math.PI * 2);
+  context.fill();
+  context.stroke();
+
+  context.fillStyle = "rgba(17, 24, 39, 0.94)";
+  context.strokeStyle = "rgba(255, 255, 255, 0.22)";
+  context.lineWidth = 1;
+  roundRect(context, x, y, tooltipWidth, tooltipHeight, 6);
+  context.fill();
+  context.stroke();
+
+  lines.forEach((line, index) => {
+    context.fillStyle = index === 0 ? "#ffffff" : "#d1d5db";
+    context.font = `${index === 0 ? "700 " : ""}12px Arial, Helvetica, sans-serif`;
+    context.fillText(line, x + padding, y + padding + 11 + index * lineHeight);
+  });
+  context.restore();
+}
+
 function updateChartStats(chart, recordsByPod = visibleRecordsByPod()) {
   const parts = chart.series
     .map((series) => {
-      const values = recordsByPod[series.podKey]
-        .map((record) => record.values[series.key])
-        .filter((value) => Number.isFinite(value));
+      let count = 0;
+      let sum = 0;
+      let min = Infinity;
+      let max = -Infinity;
 
-      if (values.length === 0) {
+      recordsByPod[series.podKey].forEach((record) => {
+        const value = record.values[series.key];
+
+        if (!Number.isFinite(value)) {
+          return;
+        }
+
+        count += 1;
+        sum += value;
+        min = Math.min(min, value);
+        max = Math.max(max, value);
+      });
+
+      if (count === 0) {
         return "";
       }
 
-      const min = Math.min(...values);
-      const max = Math.max(...values);
-      const avg = values.reduce((sum, value) => sum + value, 0) / values.length;
-      return `${getPodDisplayName(series.podKey)}: min ${formatNumber(min)} / avg ${formatNumber(avg)} / max ${formatNumber(max)}`;
+      const avg = sum / count;
+      return `${getSeriesLegendLabel(series)}: min ${formatNumber(min)} / avg ${formatNumber(avg)} / max ${formatNumber(max)}`;
     })
     .filter(Boolean);
 
   query(`[data-chart-stats="${chart.stats}"]`).textContent = parts.length ? parts.join(" | ") : "--";
 }
 
-function updateMetrics() {
-  const recordsByPod = visibleRecordsByPod();
+function updateMetrics(recordsByPod = visibleRecordsByPod()) {
+  Object.values(CHARTS).forEach((chart) => {
+    POD_KEYS.forEach((podKey) => {
+      const series = chart.series.find((item) => item.podKey === podKey);
 
-  POD_KEYS.forEach((podKey) => {
-    const records = recordsByPod[podKey];
-    const last = records[records.length - 1];
+      if (!series) {
+        return;
+      }
 
-    setMetric(`${podKey}-co`, last?.values.co, getFieldUnit("co", "ppm"));
-    setMetric(`${podKey}-co2`, last?.values.co2, getFieldUnit("co2", "ppm"));
-    setMetric(`${podKey}-pm25`, last?.values.pm25, getFieldUnit("pm25", "ug/m^3"));
+      const records = recordsByPod[podKey];
+      const last = records[records.length - 1];
+      setMetric(
+        `${podKey}-${chart.stats}`,
+        last?.values[series.key],
+        getFieldUnit(series.key, chart.unit || ""),
+      );
+    });
   });
 }
 
 function setMetric(name, value, unit) {
   const target = query(`[data-metric="${name}"]`);
+
+  if (!target) {
+    return;
+  }
+
   target.textContent = Number.isFinite(value) ? `${formatNumber(value)} ${unit}`.trim() : "--";
 }
 
@@ -912,10 +1443,15 @@ function updateLegends() {
         activePodKeys().includes(series.podKey) &&
         state.pods[series.podKey].records.length > 0,
       )
-      .map((series) => makeLegendItem(series.color, getPodDisplayName(series.podKey)));
+      .map((series) => makeLegendItem(series.color, getSeriesLegendLabel(series)));
 
     legend.replaceChildren(...items);
   });
+}
+
+function getSeriesLegendLabel(series) {
+  const podName = getPodDisplayName(series.podKey);
+  return series.label ? `${podName} — ${series.label}` : podName;
 }
 
 function makeLegendItem(color, label) {
@@ -970,12 +1506,13 @@ function exportGraphPng() {
 
   const link = document.createElement("a");
   link.href = exportCanvas.toDataURL("image/png");
-  link.download = `fire-iq-plots-${makeFileTimestamp()}.png`;
+  link.download = `${PLOTTER_CONFIG.filePrefix || "fire-iq-plots"}-${makeFileTimestamp()}.png`;
   link.click();
 }
 
 function drawExportHeader(context, width, padding) {
   const schemaStatus = query("[data-schema-status]").textContent;
+  const timeSummary = state.timeMode === "elapsed" ? "elapsed-time alignment" : "recorded date/time";
   const fileSummary = activePodKeys()
     .filter((podKey) => state.pods[podKey].fileName)
     .map((podKey) => `${getPodDisplayName(podKey)}: ${state.pods[podKey].fileName}`)
@@ -983,11 +1520,15 @@ function drawExportHeader(context, width, padding) {
 
   context.fillStyle = "#17202a";
   context.font = "700 22px Arial, Helvetica, sans-serif";
-  context.fillText("Fire-IQ Dual-POD Data Plotter", padding, 34);
+  context.fillText(PLOTTER_CONFIG.exportTitle || `${PROGRAM_NAME} Dual-POD Data Plotter`, padding, 34);
 
   context.fillStyle = "#5c6672";
   context.font = "13px Arial, Helvetica, sans-serif";
-  context.fillText(`Exported ${new Date().toLocaleString()} — ${schemaStatus}`, padding, 58);
+  context.fillText(
+    `Exported ${new Date().toLocaleString()} — ${schemaStatus} — ${timeSummary}, ${state.zoomFactor}× zoom`,
+    padding,
+    58,
+  );
   context.fillText(fileSummary || "No files loaded", padding, 76);
 
   context.strokeStyle = "#d9dee6";
@@ -1149,11 +1690,54 @@ function formatNumber(value) {
   return value.toFixed(2);
 }
 
-function formatTime(date) {
+function formatExactNumber(value) {
+  return Number.isFinite(value) ? String(value) : "--";
+}
+
+function formatXAxisValue(value, xMin, xMax) {
+  if (state.timeMode === "elapsed") {
+    return formatElapsed(value);
+  }
+
+  const date = new Date(value);
+  const spansDates = new Date(xMin).toDateString() !== new Date(xMax).toDateString();
+
+  if (spansDates || xMax - xMin >= 18 * 60 * 60 * 1000) {
+    return `${date.toLocaleDateString([], { month: "numeric", day: "numeric" })} ${formatTime(date, false)}`;
+  }
+
+  return formatTime(date);
+}
+
+function formatElapsed(milliseconds) {
+  const totalSeconds = Math.max(0, Math.round(milliseconds / 1000));
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const clock = [hours, minutes, seconds]
+    .map((part) => String(part).padStart(2, "0"))
+    .join(":");
+  return days ? `${days}d ${clock}` : clock;
+}
+
+function formatDateTime(date) {
+  return `${date.toLocaleDateString()} ${formatTime(date)}`;
+}
+
+function formatTimeSpan(first, last) {
+  if (first.toDateString() === last.toDateString()) {
+    return `${first.toLocaleDateString()} ${formatTime(first)} → ${formatTime(last)}`;
+  }
+
+  return `${formatDateTime(first)} → ${formatDateTime(last)}`;
+}
+
+function formatTime(date, includeSeconds = true) {
   return date.toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
-    second: "2-digit",
+    ...(includeSeconds ? { second: "2-digit" } : {}),
   });
 }
 
@@ -1167,4 +1751,10 @@ function makeFileTimestamp() {
 
 function query(selector) {
   return app.querySelector(selector);
+}
+
+function bindChartHover() {
+  const grid = query(".chart-grid");
+  grid.addEventListener("pointermove", handleChartPointerMove);
+  grid.addEventListener("pointerleave", clearChartHover);
 }

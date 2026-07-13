@@ -4,6 +4,12 @@ export const YPOD_HEADER_LOG_URL =
 export const YPOD_HEADER_LOG_PAGE =
   "https://github.com/HanniganAirQuality/All-POD-YAMLs/blob/main/YPOD_HeaderLog.yaml";
 
+export const SPOD_HEADER_LOG_URL =
+  "https://raw.githubusercontent.com/HanniganAirQuality/All-POD-YAMLs/main/SPOD_HeaderLog.yaml";
+
+export const SPOD_HEADER_LOG_PAGE =
+  "https://github.com/HanniganAirQuality/All-POD-YAMLs/blob/main/SPOD_HeaderLog.yaml";
+
 export const CURRENT_YPOD_VERSION = "YPOD_V4_2_0";
 
 const FALLBACK_SCHEMA = {
@@ -35,13 +41,42 @@ const FALLBACK_SCHEMA = {
   ],
 };
 
+const SPOD_FALLBACK_SCHEMA = {
+  version: "SPOD_V2.0",
+  section: "Uncalibrated",
+  sourceUrl: SPOD_HEADER_LOG_URL,
+  htmlUrl: SPOD_HEADER_LOG_PAGE,
+  columns: [
+    { name: "DateTime", unit: "timestamp" },
+    { name: "EAST_LONGITUDE", unit: "NA" },
+    { name: "NORTH_LATITUDE", unit: "NA" },
+    { name: "SPODID", unit: "ID" },
+    { name: "Firmware_Version", unit: "NA" },
+    { name: "Temperature1", unit: "Celsius", defaultAxisRange: [0, 50] },
+    { name: "Temperature2", unit: "Celsius", defaultAxisRange: [0, 50] },
+    { name: "CO2", unit: "ppm", defaultAxisRange: [0, 5000] },
+    { name: "Soil", unit: "ADU", defaultAxisRange: [0, 1023] },
+    { name: "Visible", unit: "ADU", defaultAxisRange: [0, 65535] },
+    { name: "Infrared", unit: "ADU", defaultAxisRange: [0, 65535] },
+    { name: "UV_Index", unit: "UV index", defaultAxisRange: [0, 15] },
+  ],
+};
+
 export const YPOD_SECTION_PREFERENCE = ["Calibrated", "Serial_Calibrate", "Uncalibrated", "Serial"];
 
 const DATA_SECTIONS = YPOD_SECTION_PREFERENCE;
 
 export async function loadYpodHeaderLogResource() {
+  return loadHeaderLogResource(YPOD_HEADER_LOG_URL, YPOD_HEADER_LOG_PAGE, FALLBACK_SCHEMA);
+}
+
+export async function loadSpodHeaderLogResource() {
+  return loadHeaderLogResource(SPOD_HEADER_LOG_URL, SPOD_HEADER_LOG_PAGE, SPOD_FALLBACK_SCHEMA);
+}
+
+async function loadHeaderLogResource(sourceUrl, htmlUrl, fallbackSchema) {
   try {
-    const response = await fetch(YPOD_HEADER_LOG_URL, { cache: "no-store" });
+    const response = await fetch(sourceUrl, { cache: "no-store" });
 
     if (!response.ok) {
       throw new Error(`YAML request failed with ${response.status}`);
@@ -51,8 +86,9 @@ export async function loadYpodHeaderLogResource() {
     return {
       text,
       index: parseYpodSchemaIndex(text),
-      sourceUrl: YPOD_HEADER_LOG_URL,
-      htmlUrl: YPOD_HEADER_LOG_PAGE,
+      sourceUrl,
+      htmlUrl,
+      fallbackSchema,
       isFallback: false,
     };
   } catch (error) {
@@ -60,12 +96,13 @@ export async function loadYpodHeaderLogResource() {
       text: "",
       index: [
         {
-          version: FALLBACK_SCHEMA.version,
-          sections: [FALLBACK_SCHEMA.section],
+          version: fallbackSchema.version,
+          sections: [fallbackSchema.section],
         },
       ],
-      sourceUrl: YPOD_HEADER_LOG_URL,
-      htmlUrl: YPOD_HEADER_LOG_PAGE,
+      sourceUrl,
+      htmlUrl,
+      fallbackSchema,
       isFallback: true,
       error,
     };
@@ -105,7 +142,7 @@ export function getPreferredYpodVersion(versions, previous = "") {
 export function getYpodSectionSchema(resource, version, section) {
   if (!resource.text) {
     return {
-      ...FALLBACK_SCHEMA,
+      ...(resource.fallbackSchema || FALLBACK_SCHEMA),
       isFallback: true,
     };
   }
@@ -138,7 +175,7 @@ export function normalizeYpodVersion(value) {
     return "";
   }
 
-  const match = raw.match(/(?:YPOD[\s_-]*)?V?\s*(\d+)[._-](\d+)[._-](\d+)/i);
+  const match = raw.match(/(?:[A-Z]+POD[\s_-]*)?V?\s*(\d+)[._-](\d+)(?:[._-](\d+))?/i);
 
   if (!match) {
     return "";
@@ -146,13 +183,14 @@ export function normalizeYpodVersion(value) {
 
   const major = Number(match[1]);
   const minor = Number(match[2]);
-  const patch = Number(match[3]);
+  const patch = match[3] === undefined ? null : Number(match[3]);
 
-  if (![major, minor, patch].every(Number.isFinite)) {
+  if (![major, minor].every(Number.isFinite) || (patch !== null && !Number.isFinite(patch))) {
     return "";
   }
 
-  return `YPOD_V${major}_${minor}_${patch}`;
+  const prefix = raw.match(/([A-Z]+POD)/i)?.[1]?.toUpperCase() || "YPOD";
+  return `${prefix}_V${major}_${minor}${patch === null ? "" : `_${patch}`}`;
 }
 
 export function normalizeValuesForSchema(values, columns) {
@@ -188,6 +226,16 @@ export function resolveYpodSchemaForValues(resource, selectedSchema, values) {
     return match;
   }
 
+  if (!detectedVersion) {
+    const shapeMatch = getListedYpodVersions(resource)
+      .filter((candidateVersion) => candidateVersion !== version)
+      .flatMap((candidateVersion) => getSchemaMatchesForValues(resource, candidateVersion, values))[0];
+
+    if (shapeMatch) {
+      return shapeMatch;
+    }
+  }
+
   if (!detectedVersion && selectedSchema?.columns?.length) {
     const normalizedValues = normalizeValuesForSchema(values, selectedSchema.columns);
 
@@ -208,7 +256,7 @@ export function parseYpodSectionSchema(text, version, section) {
   const block = blocks.find((item) => item.version === version);
 
   if (!block) {
-    throw new Error(`${version} was not found in the YPOD YAML.`);
+    throw new Error(`${version} was not found in the POD YAML.`);
   }
 
   const sectionIndex = findSectionIndex(lines, block.startIndex, block.endIndex, section);
@@ -238,7 +286,7 @@ function findVersionBlocks(lines) {
   const blocks = [];
 
   lines.forEach((line, index) => {
-    const match = line.match(/^(YPOD_V\d+_\d+_\d+):\s*$/);
+    const match = line.match(/^([A-Za-z]+POD_V\d+[._]\d+(?:[._]\d+)?):\s*$/);
 
     if (match) {
       if (blocks.length > 0) {
@@ -309,7 +357,7 @@ function chooseSchemaMatch(matches, previousSection = "") {
 }
 
 function getYpodFirmwareVersionFromValues(resource, values) {
-  const listedVersions = new Set(getListedYpodVersions(resource));
+  const listedVersions = getListedYpodVersions(resource);
 
   for (const item of resource?.index || []) {
     for (const section of item.sections || []) {
@@ -328,9 +376,12 @@ function getYpodFirmwareVersionFromValues(resource, values) {
         continue;
       }
 
-      const version = normalizeYpodVersion(normalizedValues[firmwareIndex]);
+      const normalizedVersion = normalizeYpodVersion(normalizedValues[firmwareIndex]);
+      const version = listedVersions.find((listedVersion) =>
+        normalizeYpodVersion(listedVersion) === normalizedVersion,
+      );
 
-      if (version && listedVersions.has(version)) {
+      if (version) {
         return version;
       }
     }
@@ -398,6 +449,7 @@ function parseSectionColumns(lines, startIndex, endIndex) {
       currentColumn = {
         name: fieldMatch[1],
         unit: "",
+        dtype: "",
         sensor: "",
         defaultAxisRange: null,
       };
@@ -409,7 +461,7 @@ function parseSectionColumns(lines, startIndex, endIndex) {
       continue;
     }
 
-    const propertyMatch = line.match(/^ {6}(unit|sensor):\s*(.+?)\s*$/);
+    const propertyMatch = line.match(/^ {6}(unit|dtype|sensor):\s*(.+?)\s*$/);
 
     if (propertyMatch) {
       currentColumn[propertyMatch[1]] = cleanYamlScalar(propertyMatch[2]);
