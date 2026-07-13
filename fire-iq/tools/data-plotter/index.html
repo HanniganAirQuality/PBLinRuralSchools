@@ -24,26 +24,12 @@
     </section>
 
     <section class="live-controls fire-pod-controls" aria-label="Data plotter controls">
-      <fieldset class="pod-count-toggle" data-pod-count>
-        <legend>Pods</legend>
-        <label><input type="radio" name="pod-count" value="1"> One pod</label>
-        <label><input type="radio" name="pod-count" value="2" checked> Two pods</label>
-      </fieldset>
-
       <article class="pod-control-card">
-        <input id="pod-1-id" class="pod-label-input" type="text" placeholder="POD 1 label" aria-label="POD 1 label" data-pod-id="pod1">
+        <input id="pod-1-id" class="pod-label-input" type="text" placeholder="YPOD label" aria-label="YPOD label" data-pod-id="pod1">
         <button type="button" class="primary-action" data-load-pod="pod1">Load CSV</button>
         <input type="file" accept=".csv,.txt,text/csv" data-csv-input="pod1" hidden>
         <button type="button" data-clear-pod="pod1" disabled>Clear</button>
         <div class="connection-status" data-pod-status="pod1" aria-live="polite">No file loaded</div>
-      </article>
-
-      <article class="pod-control-card">
-        <input id="pod-2-id" class="pod-label-input" type="text" placeholder="POD 2 label" aria-label="POD 2 label" data-pod-id="pod2">
-        <button type="button" class="primary-action" data-load-pod="pod2">Load CSV</button>
-        <input type="file" accept=".csv,.txt,text/csv" data-csv-input="pod2" hidden>
-        <button type="button" data-clear-pod="pod2" disabled>Clear</button>
-        <div class="connection-status" data-pod-status="pod2" aria-live="polite">No file loaded</div>
       </article>
 
       <button type="button" data-reset>Reset</button>
@@ -69,44 +55,44 @@
         </div>
 
         <label class="control-group" for="window-minutes">
-          <span>View window (min, 0 = all)</span>
+          <span class="setting-label">View window (min, 0 = all) <span class="setting-help" tabindex="0" aria-label="View window help" data-help="Limit the plots to the most recent number of minutes in the file. Use 0 to show the entire recording.">?</span></span>
           <input id="window-minutes" type="number" min="0" max="1440" step="0.25" value="0" data-window-minutes>
         </label>
       </div>
 
-      <section class="serial-readout fire-serial-readout" aria-label="File readout">
+      <div class="plot-settings advanced-time-settings">
+        <div class="plot-view-controls">
+          <label class="control-group" for="time-mode">
+            <span class="setting-label">Time alignment <span class="setting-help" tabindex="0" aria-label="Time alignment help" data-help="Elapsed time starts the recording at 00:00:00. Recorded date and time preserves the timestamps stored in the file.">?</span></span>
+            <select id="time-mode" data-time-mode>
+              <option value="elapsed" selected>Elapsed from start</option>
+              <option value="absolute">Recorded date and time</option>
+            </select>
+          </label>
+          <label class="control-group chart-zoom-control" for="chart-zoom">
+            <span class="setting-label">Horizontal zoom: <output for="chart-zoom" data-chart-zoom-label>1×</output> <span class="setting-help" tabindex="0" aria-label="Horizontal zoom help" data-help="Zoom into the latest portion of the visible recording. Reset zoom to return to the full selected window.">?</span></span>
+            <input id="chart-zoom" type="range" min="1" max="16" step="1" value="1" data-chart-zoom>
+          </label>
+          <button type="button" data-reset-zoom disabled>Reset zoom</button>
+        </div>
+      </div>
+
+      <section class="serial-readout fire-serial-readout single-pod-readout" aria-label="File readout">
         <div class="serial-panel">
-          <span>POD 1 rows</span>
+          <span>YPOD rows</span>
           <strong data-row-count="pod1">0</strong>
         </div>
         <div class="serial-panel">
-          <span>POD 1 time span</span>
+          <span>YPOD time span</span>
           <strong data-time-span="pod1">--</strong>
         </div>
-        <div class="serial-panel" data-pod-section="pod2">
-          <span>POD 2 rows</span>
-          <strong data-row-count="pod2">0</strong>
-        </div>
-        <div class="serial-panel" data-pod-section="pod2">
-          <span>POD 2 time span</span>
-          <strong data-time-span="pod2">--</strong>
-        </div>
-
         <div class="serial-panel raw-line-panel">
-          <span>POD 1 first row</span>
+          <span>YPOD first row</span>
           <code data-first-line="pod1">--</code>
         </div>
-        <div class="serial-panel raw-line-panel" data-pod-section="pod2">
-          <span>POD 2 first row</span>
-          <code data-first-line="pod2">--</code>
-        </div>
         <div class="serial-panel debug-panel">
-          <span>POD 1 skipped rows</span>
+          <span>YPOD skipped rows</span>
           <div class="debug-value-grid" data-skipped-rows="pod1">0</div>
-        </div>
-        <div class="serial-panel debug-panel" data-pod-section="pod2">
-          <span>POD 2 skipped rows</span>
-          <div class="debug-value-grid" data-skipped-rows="pod2">0</div>
         </div>
       </section>
     </details>
@@ -118,46 +104,20 @@
         <label><input type="checkbox" data-plot-toggle value="co2" checked> CO2</label>
         <label><input type="checkbox" data-plot-toggle value="pm25" checked> PM2.5</label>
       </fieldset>
-      <div class="plot-view-controls">
-        <label class="control-group" for="time-mode">
-          <span>Time alignment</span>
-          <select id="time-mode" data-time-mode>
-            <option value="elapsed" selected>Elapsed from start</option>
-            <option value="absolute">Recorded date and time</option>
-          </select>
-        </label>
-        <label class="control-group chart-zoom-control" for="chart-zoom">
-          <span>Horizontal zoom (latest data): <output for="chart-zoom" data-chart-zoom-label>1×</output></span>
-          <input id="chart-zoom" type="range" min="1" max="16" step="1" value="1" data-chart-zoom>
-        </label>
-        <button type="button" data-reset-zoom disabled>Reset zoom</button>
-      </div>
     </section>
 
-    <section class="metric-strip" aria-label="Latest readings">
+    <section class="metric-strip single-pod-metrics" aria-label="Latest readings">
       <article class="metric-card">
-        <span>POD 1 CO</span>
+        <span>YPOD CO</span>
         <strong data-metric="pod1-co">--</strong>
       </article>
       <article class="metric-card">
-        <span>POD 1 CO2</span>
+        <span>YPOD CO2</span>
         <strong data-metric="pod1-co2">--</strong>
       </article>
       <article class="metric-card">
-        <span>POD 1 PM2.5</span>
+        <span>YPOD PM2.5</span>
         <strong data-metric="pod1-pm25">--</strong>
-      </article>
-      <article class="metric-card" data-pod-section="pod2">
-        <span>POD 2 CO</span>
-        <strong data-metric="pod2-co">--</strong>
-      </article>
-      <article class="metric-card" data-pod-section="pod2">
-        <span>POD 2 CO2</span>
-        <strong data-metric="pod2-co2">--</strong>
-      </article>
-      <article class="metric-card" data-pod-section="pod2">
-        <span>POD 2 PM2.5</span>
-        <strong data-metric="pod2-pm25">--</strong>
       </article>
     </section>
 
@@ -207,6 +167,7 @@
   </footer>
 
   <script type="module" src="../../../assets/js/core/site.js"></script>
+  <script type="module" src="../../../assets/js/core/setting-tooltips.js"></script>
   <script type="module" src="../../../assets/js/viewers/fireiq-data-plotter.js"></script>
 </body>
 </html>

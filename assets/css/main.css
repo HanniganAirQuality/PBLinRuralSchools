@@ -825,6 +825,10 @@ input {
   box-shadow: 0 14px 34px var(--shadow-soft);
 }
 
+.single-pod-metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .plot-view-controls {
   display: flex;
   align-items: end;
@@ -1111,6 +1115,15 @@ input {
 .fire-serial-readout {
   border-top: 1px solid var(--line);
   grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.single-pod-readout {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.single-pod-readout .raw-line-panel,
+.single-pod-readout .debug-panel {
+  grid-column: span 1;
 }
 
 .export-actions {

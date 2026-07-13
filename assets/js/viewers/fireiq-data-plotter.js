@@ -1,5 +1,5 @@
-// Shared POD CSV plotting engine. Program configuration selects YPOD or SPOD
-// schemas and the measurement charts shown for up to two devices.
+// Shared single-POD CSV plotting engine. Program configuration selects YPOD
+// or SPOD schemas and the measurement charts shown.
 import {
   SPOD_HEADER_LOG_PAGE,
   YPOD_HEADER_LOG_PAGE,
@@ -34,10 +34,9 @@ const EXPORT_CHART_THEME = {
   invertSeries: false,
 };
 
-const POD_KEYS = ["pod1", "pod2"];
+const POD_KEYS = ["pod1"];
 const POD_COLORS = {
   pod1: "#f46703",
-  pod2: "#efad3c",
 };
 const FIREIQ_FIELD_ALIASES = {
   timestamp: ["DateTime", "Timestamp", "Time", "UnixTime", "Millis"],
@@ -80,10 +79,7 @@ const FIREIQ_CHARTS = {
     title: "Carbon Monoxide",
     unit: "ppm",
     minZero: true,
-    series: [
-      { podKey: "pod1", key: "co", color: POD_COLORS.pod1 },
-      { podKey: "pod2", key: "co", color: POD_COLORS.pod2 },
-    ],
+    series: [{ podKey: "pod1", key: "co", color: POD_COLORS.pod1 }],
   },
   co2: {
     canvas: "chart-co2",
@@ -91,10 +87,7 @@ const FIREIQ_CHARTS = {
     title: "Carbon Dioxide",
     unit: "ppm",
     minZero: true,
-    series: [
-      { podKey: "pod1", key: "co2", color: POD_COLORS.pod1 },
-      { podKey: "pod2", key: "co2", color: POD_COLORS.pod2 },
-    ],
+    series: [{ podKey: "pod1", key: "co2", color: POD_COLORS.pod1 }],
   },
   pm25: {
     canvas: "chart-pm25",
@@ -102,21 +95,18 @@ const FIREIQ_CHARTS = {
     title: "Particulate Matter 2.5",
     unit: "ug/m^3",
     minZero: true,
-    series: [
-      { podKey: "pod1", key: "pm25", color: POD_COLORS.pod1 },
-      { podKey: "pod2", key: "pm25", color: POD_COLORS.pod2 },
-    ],
+    series: [{ podKey: "pod1", key: "pm25", color: POD_COLORS.pod1 }],
   },
 };
 
 const AQIQ_CHARTS = {
-  temperature: makeDualPodChart("temperature", "Temperature", "Celsius"),
-  humidity: makeDualPodChart("humidity", "Relative Humidity", "%RH", true),
-  co2: makeDualPodChart("co2", "Carbon Dioxide", "ppm", true),
-  co: makeDualPodChart("co", "Carbon Monoxide", "ppm", true),
-  pm25: makeDualPodChart("pm25", "Particulate Matter 2.5", "ug/m^3", true),
-  vocLight: makeDualPodChart("vocLight", "Figaro 2600 Light VOC", "ADU", true),
-  vocHeavy: makeDualPodChart("vocHeavy", "Figaro 2602 Heavy VOC", "ADU", true),
+  temperature: makePodChart("temperature", "Temperature", "Celsius"),
+  humidity: makePodChart("humidity", "Relative Humidity", "%RH", true),
+  co2: makePodChart("co2", "Carbon Dioxide", "ppm", true),
+  co: makePodChart("co", "Carbon Monoxide", "ppm", true),
+  pm25: makePodChart("pm25", "Particulate Matter 2.5", "ug/m^3", true),
+  vocLight: makePodChart("vocLight", "Figaro 2600 Light VOC", "ADU", true),
+  vocHeavy: makePodChart("vocHeavy", "Figaro 2602 Heavy VOC", "ADU", true),
 };
 
 const SQIQ_CHARTS = {
@@ -127,12 +117,10 @@ const SQIQ_CHARTS = {
     series: [
       { podKey: "pod1", key: "temperature1", label: "Temperature 1", color: "#dc2626" },
       { podKey: "pod1", key: "temperature2", label: "Temperature 2", color: "#f59e0b" },
-      { podKey: "pod2", key: "temperature1", label: "Temperature 1", color: "#2563eb" },
-      { podKey: "pod2", key: "temperature2", label: "Temperature 2", color: "#06b6d4" },
     ],
   },
-  co2: makeDualPodChart("co2", "Carbon Dioxide", "ppm", true),
-  soil: makeDualPodChart("soil", "Soil", "ADU", true),
+  co2: makePodChart("co2", "Carbon Dioxide", "ppm", true),
+  soil: makePodChart("soil", "Soil", "ADU", true),
   light: {
     stats: "light",
     title: "Visible and Infrared Light",
@@ -141,11 +129,9 @@ const SQIQ_CHARTS = {
     series: [
       { podKey: "pod1", key: "visible", label: "Visible", color: "#ca8a04" },
       { podKey: "pod1", key: "infrared", label: "Infrared", color: "#7c3aed" },
-      { podKey: "pod2", key: "visible", label: "Visible", color: "#16a34a" },
-      { podKey: "pod2", key: "infrared", label: "Infrared", color: "#db2777" },
     ],
   },
-  uv: makeDualPodChart("uv", "UV Index", "UV index", true),
+  uv: makePodChart("uv", "UV Index", "UV index", true),
 };
 
 const CHARTS = PLOTTER_CONFIG.charts || (
@@ -163,26 +149,21 @@ const state = {
   displayWindowMs: DEFAULT_WINDOW_MINUTES * 60 * 1000,
   timeMode: "elapsed",
   zoomFactor: 1,
-  podCount: 2,
   renderQueued: false,
   hoverPoint: null,
   pods: {
-    pod1: makePodState(`${POD_NAME} 1`),
-    pod2: makePodState(`${POD_NAME} 2`),
+    pod1: makePodState(POD_NAME),
   },
 };
 
-function makeDualPodChart(key, title, unit, minZero = false) {
+function makePodChart(key, title, unit, minZero = false) {
   return {
     canvas: `chart-${key}`,
     stats: key,
     title,
     unit,
     minZero,
-    series: [
-      { podKey: "pod1", key, color: POD_COLORS.pod1 },
-      { podKey: "pod2", key, color: POD_COLORS.pod2 },
-    ],
+    series: [{ podKey: "pod1", key, color: POD_COLORS.pod1 }],
   };
 }
 
@@ -231,9 +212,6 @@ function bindControls() {
       clearChartHover();
       queueRender();
     });
-  });
-  app.querySelectorAll("[data-pod-count] input[name='pod-count']").forEach((radio) => {
-    radio.addEventListener("change", () => setPodCount(Number(radio.value)));
   });
   query("[data-reset]").addEventListener("click", resetData);
   query("[data-export-png]").addEventListener("click", exportGraphPng);
@@ -638,24 +616,8 @@ function isCsvLikeLine(line, values = parseCsvLine(line)) {
 // ---------------------------------------------------------------------------
 // Pod controls & readouts
 // ---------------------------------------------------------------------------
-function setPodCount(count) {
-  clearChartHover();
-  state.podCount = count === 1 ? 1 : 2;
-  const singleMode = state.podCount === 1;
-
-  app.querySelectorAll('[data-pod-section="pod2"]').forEach((element) => {
-    element.toggleAttribute("hidden", singleMode);
-  });
-
-  if (singleMode && state.pods.pod2.records.length) {
-    clearPod("pod2");
-  }
-
-  queueRender();
-}
-
 function activePodKeys() {
-  return state.podCount === 1 ? ["pod1"] : POD_KEYS;
+  return POD_KEYS;
 }
 
 function clearPod(podKey) {
@@ -1520,7 +1482,11 @@ function drawExportHeader(context, width, padding) {
 
   context.fillStyle = "#17202a";
   context.font = "700 22px Arial, Helvetica, sans-serif";
-  context.fillText(PLOTTER_CONFIG.exportTitle || `${PROGRAM_NAME} Dual-POD Data Plotter`, padding, 34);
+  context.fillText(
+    PLOTTER_CONFIG.exportTitle || `${PROGRAM_NAME} ${POD_NAME} Data Visualization`,
+    padding,
+    34,
+  );
 
   context.fillStyle = "#5c6672";
   context.font = "13px Arial, Helvetica, sans-serif";
