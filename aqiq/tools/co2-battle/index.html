@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AQIQ CO2 Battle | HAQ Lab PBL</title>
+  <link rel="stylesheet" href="../../../assets/css/main.css">
+</head>
+<body class="tool-page live-viewer-page co2-battle-page theme-aqiq">
+  <header class="site-header">
+    <a class="brand" href="../../../">HAQ Lab PBL</a>
+    <nav class="site-nav" aria-label="Tool navigation">
+      <a href="../../">AQIQ hub</a>
+      <a href="../live-viewer/">Live Viewer</a>
+    </nav>
+  </header>
+
+  <main class="live-shell co2-battle-shell" data-co2-battle>
+    <section class="live-header" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">AQIQ Lesson 1</p>
+        <h1 id="page-title">CO<sub>2</sub> Battle</h1>
+      </div>
+      <p class="battle-intro">Connect two YPODs and compare their live carbon dioxide readings on the same scale.</p>
+    </section>
+
+    <section class="battle-directions" aria-labelledby="directions-title">
+      <h2 id="directions-title">Start a round</h2>
+      <ol>
+        <li>Connect Pod 1 and Pod 2.</li>
+        <li>Place each pod near the source you want to compare.</li>
+        <li>Watch the live readings. The higher selected measurement leads.</li>
+      </ol>
+    </section>
+
+    <section class="live-controls battle-pod-controls" aria-label="YPOD connections">
+      <article class="pod-control-card" data-pod-controls="1">
+        <label class="control-group" for="pod-1-name">
+          <span class="setting-label">Pod 1 name</span>
+          <input class="pod-label-input" id="pod-1-name" type="text" value="Pod 1" maxlength="32" data-pod-name="1">
+        </label>
+        <button class="primary-action" type="button" data-connect-pod="1">Connect</button>
+        <button type="button" data-disconnect-pod="1" disabled>Disconnect</button>
+        <div class="connection-status" data-pod-status="1" role="status">Not connected</div>
+      </article>
+
+      <article class="pod-control-card" data-pod-controls="2">
+        <label class="control-group" for="pod-2-name">
+          <span class="setting-label">Pod 2 name</span>
+          <input class="pod-label-input" id="pod-2-name" type="text" value="Pod 2" maxlength="32" data-pod-name="2">
+        </label>
+        <button class="primary-action" type="button" data-connect-pod="2">Connect</button>
+        <button type="button" data-disconnect-pod="2" disabled>Disconnect</button>
+        <div class="connection-status" data-pod-status="2" role="status">Not connected</div>
+      </article>
+    </section>
+
+    <details class="advanced-settings">
+      <summary>Advanced settings</summary>
+      <div class="advanced-grid">
+        <label class="control-group" for="battle-yaml-version">
+          <span class="setting-label">YAML version <span class="setting-help" tabindex="0" aria-label="YAML version help" data-help="Choose the YPOD firmware schema used to interpret incoming serial rows.">?</span></span>
+          <select id="battle-yaml-version" data-yaml-version></select>
+        </label>
+
+        <label class="control-group" for="battle-yaml-section">
+          <span class="setting-label">YAML type <span class="setting-help" tabindex="0" aria-label="YAML type help" data-help="Choose which data section supplies column names, units, and field order.">?</span></span>
+          <select id="battle-yaml-section" data-yaml-section></select>
+        </label>
+
+        <label class="control-group" for="battle-measurement">
+          <span class="setting-label">Measurement to compare <span class="setting-help" tabindex="0" aria-label="Measurement help" data-help="Choose any numeric measurement available in the selected YPOD schema. Both pods use the same measurement and scale.">?</span></span>
+          <select id="battle-measurement" data-measurement-select></select>
+        </label>
+
+        <div class="schema-card advanced-schema-card" aria-live="polite">
+          <span class="schema-label">YAML source <span class="setting-help" tabindex="0" aria-label="YAML source help" data-help="Shows the schema file supplying field order and units.">?</span></span>
+          <a data-schema-link href="https://github.com/HanniganAirQuality/All-POD-YAMLs/blob/main/YPOD_HeaderLog.yaml">YPOD_HeaderLog.yaml</a>
+          <span data-schema-status>Loading YPOD schema…</span>
+        </div>
+      </div>
+    </details>
+
+    <section class="battle-toolbar" aria-label="Battle controls and status">
+      <button type="button" data-reset-round>Reset round</button>
+      <div class="battle-leader" data-battle-leader role="status" aria-live="polite">Waiting for both pods</div>
+      <div class="battle-scale-label">Shared scale: 0–<span data-scale-maximum>1,000</span> <span data-measurement-unit>ppm</span></div>
+    </section>
+
+    <section class="battle-grid" aria-label="Live YPOD measurement comparison">
+      <article class="battle-card" data-battle-card="1">
+        <header>
+          <h2 data-pod-title="1">Pod 1</h2>
+          <p>Live <span data-measurement-label>CO<sub>2</sub></span></p>
+        </header>
+        <strong class="battle-reading"><span data-current-value="1">--</span> <span data-measurement-unit>ppm</span></strong>
+        <div class="battle-meter" data-battle-meter="1" style="--level: 0%; --peak: 0%; --has-peak: 0;">
+          <div class="battle-meter-scale" aria-hidden="true">
+            <span data-meter-maximum>1,000</span>
+            <span data-meter-midpoint>500</span>
+            <span>0</span>
+          </div>
+          <div class="battle-meter-track" aria-hidden="true">
+            <div class="battle-meter-fill"></div>
+            <div class="battle-peak-marker"></div>
+          </div>
+        </div>
+        <p class="battle-peak">Round peak: <strong><span data-peak-value="1">--</span> <span data-measurement-unit>ppm</span></strong></p>
+      </article>
+
+      <article class="battle-card" data-battle-card="2">
+        <header>
+          <h2 data-pod-title="2">Pod 2</h2>
+          <p>Live <span data-measurement-label>CO<sub>2</sub></span></p>
+        </header>
+        <strong class="battle-reading"><span data-current-value="2">--</span> <span data-measurement-unit>ppm</span></strong>
+        <div class="battle-meter" data-battle-meter="2" style="--level: 0%; --peak: 0%; --has-peak: 0;">
+          <div class="battle-meter-scale" aria-hidden="true">
+            <span data-meter-maximum>1,000</span>
+            <span data-meter-midpoint>500</span>
+            <span>0</span>
+          </div>
+          <div class="battle-meter-track" aria-hidden="true">
+            <div class="battle-meter-fill"></div>
+            <div class="battle-peak-marker"></div>
+          </div>
+        </div>
+        <p class="battle-peak">Round peak: <strong><span data-peak-value="2">--</span> <span data-measurement-unit>ppm</span></strong></p>
+      </article>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>HAQ Lab, University of Colorado</span>
+    <span data-current-year></span>
+  </footer>
+
+  <script type="module" src="../../../assets/js/core/site.js"></script>
+  <script type="module" src="../../../assets/js/core/setting-tooltips.js"></script>
+  <script type="module" src="../../../assets/js/viewers/aqiq-co2-battle.js"></script>
+</body>
+</html>
