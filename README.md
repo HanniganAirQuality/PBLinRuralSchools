@@ -51,8 +51,8 @@ pbl.haq-lab.github.io/
 | --- | --- | --- | --- |
 | AQIQ | YPOD | Active hub | Live Viewer, Data Plotter |
 | Fire-IQ | YPOD mod | Active hub | Live Viewer, Data Plotter |
-| SQIQ | SPOD | Active hub | Live Viewer |
-| Water-IQ | TBD | Disabled placeholder | Future tools |
+| SQIQ | SPOD | Active hub | Live Viewer, Data Plotter |
+| Water-IQ | TBD | Under Construction |  |
 
 ## Live Viewer
 
@@ -60,7 +60,7 @@ The AQIQ live viewer is a static Web Serial application. By default, it uses 960
 
 The Fire-IQ live viewer is a static Web Serial application for two modified YPOD streams at 9600 baud. It uses `YPOD_HeaderLog.yaml` and the same firmware-aware row mapping as AQIQ, then overlays the two pods in shared CO, CO2, and PM2.5 plots.
 
-The SQIQ live viewer uses the same Web Serial and schema-driven plotting engine with `SPOD_HeaderLog.yaml`. It supports both SPOD V1.0 (separate date/time fields and no firmware field) and V2.0 (RETIGO layout with firmware metadata), and plots both temperature channels, carbon dioxide, soil signal, visible light, infrared light, and UV index. Every additional numeric SPOD YAML column is available as an optional plot.
+The SQIQ live viewer uses the same Web Serial and schema-driven plotting engine with `SPOD_HeaderLog.yaml`. It supports both SPOD V1.0 (separate date/time fields and no firmware field) and V2.0 (RETIGO layout with firmware metadata), and plots both temperature channels, carbon dioxide, soil moisture, visible light, infrared light, and UV index. Every additional numeric SPOD YAML column is available as an optional plot.
 
 ## Hosting
 
