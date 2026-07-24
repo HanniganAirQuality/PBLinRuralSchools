@@ -1,5 +1,5 @@
 # HAQ Lab PBL Site
-We are attempting to support programs in different regions through inclusion of multiple languages in our user interface. Please select from supported README languages:
+Nós estamos apoiar programas en regiões diferentes com múltiplo línguas en nossos interface de usuário & primário documentação. Por favor selecione-a na mantida "README" línguas:
 <p>
     [![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/HanniganAirQuality/PBLinRuralSchools/tree/main/README.md)
     [![pt-br](https://img.shields.io/badge/lang-pt--br-green.svg)](https://github.com/HanniganAirQuality/PBLinRuralSchools/tree/main/README.pt-BR.md)
