@@ -1,4 +1,7 @@
 # HAQ Lab PBL Site
+We are attempting to support programs in different regions through inclusion of multiple languages in our user interface. Please select from supported README languages
+    [![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/HanniganAirQuality/PBLinRuralSchools/tree/main/README.md)
+    [![pt-br](https://img.shields.io/badge/lang-pt--br-green.svg)](https://github.com/HanniganAirQuality/PBLinRuralSchools/tree/main/README.pt-BR.md)
 
 Static site for the HAQ Lab Project-Based Learning programs, hosted on GitHub Pages.
 [https://hanniganairquality.github.io/PBLinRuralSchools/](https://hanniganairquality.github.io/PBLinRuralSchools/)
