@@ -5,7 +5,8 @@ Nós estamos apoiar programas en regiões diferentes com múltiplo línguas en n
 [![pt-br](https://img.shields.io/badge/lang-pt--br-green.svg)](https://github.com/HanniganAirQuality/PBLinRuralSchools/tree/main/README.pt-BR.md)
 <br>
 
-Tradução para o Português por Percy Smith em 24/07/2026 (Aviso: as novas atualizações serão menos frequentes, pois a língua principal de desenvolvimento é o inglês)
+Tradução para o Português por Percy Smith em 24/07/2026 (peço desculpa, ainda estou a aprender português)
+**Aviso: as novas atualizações serão menos frequentes, pois a língua principal de desenvolvimento é o inglês**
 
 Estático site para nosso programa aprendizagem baseada em projetos (EN: 'HAQ Lab PBL' program), administrado en 'GitHub Pages'.
 [https://hanniganairquality.github.io/PBLinRuralSchools/](https://hanniganairquality.github.io/PBLinRuralSchools/)
