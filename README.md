@@ -16,19 +16,21 @@ pbl.haq-lab.github.io/
 |   |-- index.html              AQIQ hub
 |   `-- tools/
 |       |-- data-plotter/
-|       |   `-- index.html      Data Plotter placeholder
+|       |   `-- index.html      Data Plotter 
 |       `-- live-viewer/
 |           `-- index.html      Live Viewer
 |-- fire-iq/
 |   |-- index.html              Fire-IQ hub
 |   `-- tools/
 |       |-- data-plotter/
-|       |   `-- index.html      Data Plotter placeholder
+|       |   `-- index.html      Data Plotter 
 |       `-- live-viewer/
 |           `-- index.html      Dual-POD Live Viewer
 |-- sqiq/
 |   |-- index.html              SQIQ hub
 |   `-- tools/
+|       |-- data-plotter/
+|       |   `-- index.html      Data Plotter 
 |       `-- live-viewer/
 |           `-- index.html      SPOD Live Viewer
 |-- water-iq/

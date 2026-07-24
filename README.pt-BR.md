@@ -32,6 +32,8 @@ pbl.haq-lab.github.io/
 |-- sqiq/
 |   |-- index.html              Centro site: **Pergunte Ao Solo** (EN: 'Soil Quality InQuiry (SQIQ)')
 |   `-- tools/
+|       |-- data-plotter/
+|       |   `-- index.html      Plotadora estática 
 |       `-- live-viewer/
 |           `-- index.html      Visualização ao vivo (SPOD)
 |-- water-iq/
