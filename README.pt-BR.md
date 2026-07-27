@@ -51,7 +51,6 @@ pbl.haq-lab.github.io/
 ```
 
 ## Detalhes do Programa
-
 | Programa  | Instrumento   | Estado        | Ferramentas                                           |
 | ---       | ---           | ---           | ---                                                   |
 | AQIQ      | YPOD          | Ativa         | Visualização ao vivo, Plotadora estática              |
@@ -59,8 +58,7 @@ pbl.haq-lab.github.io/
 | SQIQ      | SPOD          | Ativa         | Visualização ao vivo, Plotadora estática              |
 | WQIQ      | TBD           | Em construção |                                                       |
 
-## Live Viewer
-
+## Visualização ao vivo
 Visualização ao vivo de Pergunte Ao Ar (EN: 'Air Quality InQuiry (AQIQ)') é uma aplicação de Web estática que utiliza Portas Seriais para apresentar os dados de um monitor de qualidade do ar (YPOD). Por padrão, utiliza taxa de bauds de 9600, carrega a última entrada de `YPOD_*` em `YPOD_HeaderLog.yaml` no repositório `HanniganAirQuality/All-POD-YAMLs`, e analisa as linhas CSV recebidas usando a seção de dados ao vivo preferida dessa versão. Linhas com entrada de `Firmware_Version` passarão para a versão automaticamente; linhas antigas sem metadados de versão mantêm a versão selecionada pelo usuário. As novas versões do YAML dão preferência a `Calibrated`; as versões antigas recorrem a `Serial_Calibrate` ou `Serial`. As configurações avançadas permitem selecionar a versão do YAML, seção de dados, janela de tempo, e gráficos visíveis.
 
 Visualização ao vivo de Pergunte Ao Fogo (EN: 'Fire InQuiry (Fire-IQ)') é uma aplicação de Web estática que utiliza Portas Seriais para apresentar dados em dois monitores de qualidade do ar (YPOD, modificado). Ela utiliza o `YPOD_HeaderLog.yaml` e idêntico mapeamento da versão do firmware, com a diferença de que utiliza dois monitores e exibe os valores de CO, CO₂ e PM2,5. 
@@ -68,7 +66,6 @@ Visualização ao vivo de Pergunte Ao Fogo (EN: 'Fire InQuiry (Fire-IQ)') é uma
 Visualização ao vivo de Pergunte Ao Solo (EN: 'Soil Quality InQuiry (SQIQ)') é uma aplicação de Web estática que utiliza Portas Seriais para apresentar os dados de um monitor de qualidade do solo. Ela utiliza o `SPOD_HeaderLog.yaml` e é compatível tanto com a versão 1,0 como com a versão 2,0. A aplicação apresenta gráficos da temperatura, do CO₂, da humidade do solo e da luz visível, infravermelha e ultravioleta. 
 
 ## Hospedagem 
-
 Administrado em 'GitHub Pages'. Requer HTTPS para 'API Web Serial', que é fornecida automaticamente no `*.github.io`.
 
 ## HAQ Lab, Universidade do Colorado 
