@@ -14,8 +14,5 @@
   "home.program.fireIq": "Fire-IQ",
   "home.program.sqiq": "SQIQ",
   "home.program.waterIq": "Water-IQ",
-  "home.program.waterIqUnavailableLabel": "Water-IQ, not available yet",
-  "home.programs.ariaLabel": "Programas",
-  "home.status.open": "Abrem centro",
-  "home.status.unavailable": "Em construção"
+  "home.programs.ariaLabel": "Programas"
 }

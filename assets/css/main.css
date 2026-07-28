@@ -319,9 +319,7 @@ p {
   background: var(--surface-panel);
 }
 
-.program-kicker,
-.program-status,
-.status-pill {
+.program-kicker {
   color: var(--muted);
   font-size: 0.8125rem;
   font-weight: 700;
@@ -331,15 +329,6 @@ p {
   color: var(--ink);
   font-size: 1.75rem;
   font-weight: 800;
-}
-
-.program-status,
-.status-pill {
-  width: fit-content;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 0.25rem 0.45rem;
-  background: var(--surface-soft);
 }
 
 .page-shell {
