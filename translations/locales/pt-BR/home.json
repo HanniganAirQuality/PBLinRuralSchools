@@ -1,0 +1,21 @@
+{
+  "common.brand": "HAQ Lab PBL",
+  "common.footer": "HAQ Lab, University of Colorado",
+  "home.affiliation": "University of Colorado",
+  "home.brandHomeLabel": "Centro do HAQ Lab PBL",
+  "home.device.spod": "SPOD",
+  "home.device.tbd": "TBD",
+  "home.device.ypod": "YPOD",
+  "home.device.ypodModified": "YPOD mod",
+  "home.page.browserTitle": "Programos do HAQ Lab PBL",
+  "home.page.eyebrow": "Seletor das programas",
+  "home.page.title": "Em que programa estás?",
+  "home.program.aqiq": "AQIQ",
+  "home.program.fireIq": "Fire-IQ",
+  "home.program.sqiq": "SQIQ",
+  "home.program.waterIq": "Water-IQ",
+  "home.program.waterIqUnavailableLabel": "Water-IQ, not available yet",
+  "home.programs.ariaLabel": "Programas",
+  "home.status.open": "Abrem centro",
+  "home.status.unavailable": "Em construção"
+}

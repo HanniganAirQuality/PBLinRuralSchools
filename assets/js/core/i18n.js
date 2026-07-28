@@ -142,6 +142,13 @@ function getCatalogContext() {
   const path = decodeURIComponent(window.location.pathname).replace(/\\/g, "/");
   const toolMatch = path.match(/\/aqiq\/tools\/(live-viewer|data-plotter|co2-battle)(?:\/|\/index\.html)?$/i);
 
+  if (document.body?.classList.contains("landing")) {
+    return {
+      file: "home.json",
+      namespaces: ["common.", "home."],
+    };
+  }
+
   if (toolMatch) {
     const toolNamespaces = {
       "co2-battle": "co2Battle.",
