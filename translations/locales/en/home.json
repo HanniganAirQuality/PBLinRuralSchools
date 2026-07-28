@@ -1,6 +1,13 @@
 {
   "common.brand": "HAQ Lab PBL",
   "common.footer": "HAQ Lab, University of Colorado",
+  "common.actions.redoWalkthrough": "Redo walkthrough",
+  "common.actions.scrollToGraphs": "Scroll to graphs",
+  "common.navigation.siteControls": "Site controls",
+  "common.theme.darkMode": "Dark mode",
+  "common.theme.lightMode": "Light mode",
+  "common.theme.switchToDark": "Switch to dark mode",
+  "common.theme.switchToLight": "Switch to light mode",
   "home.affiliation": "University of Colorado",
   "home.brandHomeLabel": "HAQ Lab PBL home",
   "home.device.spod": "SPOD",

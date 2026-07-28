@@ -232,6 +232,10 @@ function bindControls() {
     clearChartHover();
     queueRender();
   });
+  window.addEventListener("haq-theme-change", () => {
+    clearChartHover();
+    queueRender();
+  });
   const colorScheme = window.matchMedia?.("(prefers-color-scheme: dark)");
   colorScheme?.addEventListener?.("change", () => {
     clearChartHover();
@@ -1608,8 +1612,13 @@ function getLiveChartTheme() {
     grid: cssVar("--line", "#d9dee6"),
     text: cssVar("--muted", "#5c6672"),
     emptyText: cssVar("--disabled", "#798391"),
-    invertSeries: window.matchMedia?.("(prefers-color-scheme: dark)")?.matches || false,
+    invertSeries: isDarkTheme(),
   };
+}
+
+function isDarkTheme() {
+  const selectedTheme = document.documentElement.dataset.theme;
+  return selectedTheme ? selectedTheme === "dark" : window.matchMedia?.("(prefers-color-scheme: dark)")?.matches || false;
 }
 
 function getSeriesColor(series, theme) {

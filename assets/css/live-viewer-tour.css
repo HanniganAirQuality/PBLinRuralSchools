@@ -61,6 +61,7 @@
 .live-tour-overlay {
   display: block;
   background: transparent;
+  pointer-events: none;
 }
 
 .live-tour-highlight {
@@ -83,6 +84,7 @@
 .live-tour-card {
   position: fixed;
   z-index: 42;
+  pointer-events: auto;
 }
 
 .live-tour-count {

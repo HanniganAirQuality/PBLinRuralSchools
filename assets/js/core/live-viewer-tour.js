@@ -1,15 +1,20 @@
-const TOUR_DISMISSED_VALUE = "dismissed";
+import { initializeI18n, t } from "./i18n.js";
 
+const TOUR_DISMISSED_VALUE = "dismissed";
+let activeTourConfig = null;
+
+await initializeI18n();
 initLiveViewerTour();
+document.addEventListener("haq-restart-live-tour", restartLiveViewerTour);
 
 export function showLiveViewerTourPrompt({
   storageKey,
   setupSelector = ".live-controls",
   connectSelector,
   chartSelector,
-  setupText = "Plug the Arduino into your computer with USB before connecting.",
-  connectText = "Use Connect to choose the serial device for your YPOD.",
-  chartText = "The graph area updates live. Drag plots to reorder them, or drop one plot onto another to combine graphs.",
+  setupText = t("liveViewer.tour.setupPod", { podName: "pod" }),
+  connectText = t("liveViewer.tour.connectPod", { podName: "pod" }),
+  chartText = t("liveViewer.tour.graphsSingle"),
 } = {}) {
   if (!storageKey || isTourDismissed(storageKey) || document.querySelector("[data-live-tour]")) {
     return;
@@ -22,23 +27,7 @@ export function showLiveViewerTourPrompt({
 
     showTourPrompt({
       storageKey,
-      steps: [
-        {
-          selector: setupSelector,
-          title: "Plug in the Arduino",
-          text: setupText,
-        },
-        {
-          selector: connectSelector,
-          title: "Connect your YPOD",
-          text: connectText,
-        },
-        {
-          selector: chartSelector,
-          title: "Arrange the graphs",
-          text: chartText,
-        },
-      ],
+      steps: makeTourSteps({ setupSelector, connectSelector, chartSelector, setupText, connectText, chartText }),
     });
   });
 }
@@ -47,29 +36,55 @@ function initLiveViewerTour() {
   const aqiqViewer = document.querySelector("[data-live-viewer]");
   const fireViewer = document.querySelector("[data-fire-iq-live-viewer]");
 
-  if (aqiqViewer) {
-    showLiveViewerTourPrompt({
-      storageKey: "haq-aqiq-live-viewer-tour",
-      setupSelector: ".live-controls",
-      connectSelector: "[data-connect]",
-      chartSelector: ".chart-grid",
-      setupText: "Plug the Arduino into your computer with USB before connecting.",
-      connectText: "Use Connect to choose the serial device for your YPOD. The Arduino may appear under different names, such as CDC, UNO, Arduino, or USB Serial.",
-      chartText: "The graph area updates live. Drag plots to reorder them, or drop one plot onto another to combine graphs.",
-    });
-  }
-
   if (fireViewer) {
-    showLiveViewerTourPrompt({
+    activeTourConfig = {
       storageKey: "haq-fireiq-live-viewer-tour",
       setupSelector: ".live-controls",
       connectSelector: "[data-connect-pod]",
       chartSelector: ".chart-grid",
-      setupText: "Plug each Arduino into your computer with USB before connecting.",
-      connectText: "Use Connect to choose the serial device for a YPOD. The Arduino may appear under different names, such as CDC, UNO, Arduino, or USB Serial. Fire-IQ can connect two pods at once.",
-      chartText: "The graph area updates live for both PODs. Use the plot toggles to choose which shared graphs are visible.",
-    });
+      setupText: t("liveViewer.tour.setupFireIq"),
+      connectText: t("liveViewer.tour.connectFireIqRequired"),
+      chartText: t("liveViewer.tour.graphsFireIq"),
+    };
+  } else if (aqiqViewer) {
+    const isSqiq = document.body.classList.contains("theme-sqiq");
+    const podName = isSqiq ? "SPOD" : "YPOD";
+    activeTourConfig = {
+      storageKey: `haq-${isSqiq ? "sqiq" : "aqiq"}-live-viewer-tour`,
+      setupSelector: ".live-controls",
+      connectSelector: "[data-connect]",
+      chartSelector: ".chart-grid",
+      setupText: t("liveViewer.tour.setupPod", { podName }),
+      connectText: t("liveViewer.tour.connectPod", { podName }),
+      chartText: t("liveViewer.tour.graphsSingle"),
+    };
   }
+
+  if (activeTourConfig) {
+    showLiveViewerTourPrompt(activeTourConfig);
+  }
+}
+
+function restartLiveViewerTour() {
+  if (!activeTourConfig) {
+    return;
+  }
+
+  document.querySelector("[data-live-tour]")?.remove();
+  waitForBrowserWarningDismissal(() => {
+    startTour({
+      storageKey: activeTourConfig.storageKey,
+      steps: makeTourSteps(activeTourConfig),
+    });
+  });
+}
+
+function makeTourSteps({ setupSelector, connectSelector, chartSelector, setupText, connectText, chartText }) {
+  return [
+    { selector: setupSelector, title: t("liveViewer.tour.plugInPodTitle"), text: setupText },
+    { selector: connectSelector, title: t("liveViewer.tour.clickConnectTitle"), text: connectText, advanceOnTargetClick: true },
+    { selector: chartSelector, title: t("liveViewer.arrangeTheGraphs"), text: chartText },
+  ];
 }
 
 function showTourPrompt({ storageKey, steps }) {
@@ -89,19 +104,19 @@ function showTourPrompt({ storageKey, steps }) {
   dialog.setAttribute("aria-labelledby", "live-tour-title");
 
   title.id = "live-tour-title";
-  title.textContent = "Want a quick tour?";
-  message.textContent = "Walk through the live viewer controls and graph area before you connect.";
+  title.textContent = t("liveViewer.wantAQuickTour");
+  message.textContent = t("liveViewer.tour.promptMessage");
 
   remember.type = "checkbox";
   remember.dataset.liveTourRemember = "";
   rememberLabel.className = "live-tour-remember";
-  rememberLabel.append(remember, document.createTextNode("Do not show this again"));
+  rememberLabel.append(remember, document.createTextNode(t("liveViewer.doNotShowThisAgain")));
 
   start.type = "button";
   start.className = "primary-action";
-  start.textContent = "Start tour";
+  start.textContent = t("liveViewer.startTour");
   skip.type = "button";
-  skip.textContent = "Skip";
+  skip.textContent = t("liveViewer.skip");
 
   start.addEventListener("click", () => {
     if (remember.checked) {
@@ -147,6 +162,7 @@ function startTour({ storageKey, steps }) {
   const next = document.createElement("button");
   const close = document.createElement("button");
   let index = 0;
+  let actionTarget = null;
 
   highlight.className = "live-tour-highlight";
   card.className = "live-tour-card";
@@ -157,7 +173,7 @@ function startTour({ storageKey, steps }) {
   next.type = "button";
   next.className = "primary-action";
   close.type = "button";
-  close.textContent = "Close";
+  close.textContent = t("liveViewer.close");
   actions.className = "live-tour-actions";
   actions.append(next, close);
   card.append(count, title, text, actions);
@@ -165,6 +181,7 @@ function startTour({ storageKey, steps }) {
   document.body.append(overlay);
 
   function endTour() {
+    clearTargetAction();
     overlay.remove();
     window.removeEventListener("resize", renderStep);
     window.removeEventListener("scroll", renderStep, true);
@@ -188,16 +205,41 @@ function startTour({ storageKey, steps }) {
 
     title.textContent = step.title;
     text.textContent = step.text;
-    count.textContent = `Step ${index + 1} of ${availableSteps.length}`;
-    next.textContent = index === availableSteps.length - 1 ? "Done" : "Next";
+    count.textContent = t("liveViewer.tour.stepProgressSimple", { current: index + 1, total: availableSteps.length });
+    next.disabled = Boolean(step.advanceOnTargetClick);
+    next.textContent = step.advanceOnTargetClick
+      ? t("liveViewer.tour.clickConnectAction")
+      : index === availableSteps.length - 1 ? t("liveViewer.done") : t("liveViewer.next");
 
     positionTourCard(card, highlightRect);
   }
 
   function showStep(nextIndex) {
+    clearTargetAction();
     index = nextIndex;
-    availableSteps[index].target.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" });
+    const step = availableSteps[index];
+    step.target.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" });
+
+    if (step.advanceOnTargetClick) {
+      actionTarget = step.target;
+      actionTarget.addEventListener("click", handleTargetAction, { once: true });
+    }
+
     window.setTimeout(renderStep, 180);
+  }
+
+  function handleTargetAction() {
+    actionTarget = null;
+    window.setTimeout(() => {
+      if (index < availableSteps.length - 1) {
+        showStep(index + 1);
+      }
+    }, 0);
+  }
+
+  function clearTargetAction() {
+    actionTarget?.removeEventListener("click", handleTargetAction);
+    actionTarget = null;
   }
 
   next.addEventListener("click", () => {

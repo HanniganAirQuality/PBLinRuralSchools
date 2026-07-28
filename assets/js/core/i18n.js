@@ -140,7 +140,7 @@ function readStoredLanguage() {
 
 function getCatalogContext() {
   const path = decodeURIComponent(window.location.pathname).replace(/\\/g, "/");
-  const toolMatch = path.match(/\/aqiq\/tools\/(live-viewer|data-plotter|co2-battle)(?:\/|\/index\.html)?$/i);
+  const toolMatch = path.match(/\/(?:aqiq|fire-iq|sqiq)\/tools\/(live-viewer|data-plotter|co2-battle)(?:\/|\/index\.html)?$/i);
 
   if (document.body?.classList.contains("landing")) {
     return {
@@ -166,7 +166,7 @@ function getCatalogContext() {
     };
   }
 
-  if (/\/aqiq\/(?:index\.html)?$/i.test(path)) {
+  if (/\/(?:aqiq|fire-iq|sqiq|water-iq)\/(?:index\.html)?$/i.test(path)) {
     return {
       file: "aqiq.json",
       namespaces: ["common.", "aqiq."],
