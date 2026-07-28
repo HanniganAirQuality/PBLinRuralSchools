@@ -52,6 +52,12 @@ function mountHeaderControls() {
   }
 
   const themeButton = makeHeaderButton("", "theme-toggle", toggleTheme);
+  const themeIcon = document.createElement("img");
+  themeIcon.src = new URL("../../light-off-or-dark-mode-black-outline-21625.svg", import.meta.url).href;
+  themeIcon.alt = "";
+  themeIcon.setAttribute("aria-hidden", "true");
+  themeButton.classList.add("theme-toggle-button");
+  themeButton.append(themeIcon);
   controls.append(themeButton);
   updateThemeButton(themeButton);
 }
@@ -99,8 +105,9 @@ function applyTheme(theme, { persist, announce }) {
 
 function updateThemeButton(button) {
   const isDark = document.documentElement.dataset.theme === "dark";
-  button.textContent = t(isDark ? "common.theme.lightMode" : "common.theme.darkMode");
-  button.setAttribute("aria-label", t(isDark ? "common.theme.switchToLight" : "common.theme.switchToDark"));
+  const label = t(isDark ? "common.theme.switchToLight" : "common.theme.switchToDark");
+  button.setAttribute("aria-label", label);
+  button.title = label;
   button.setAttribute("aria-pressed", String(isDark));
 }
 
