@@ -10,6 +10,7 @@ import {
   loadYpodHeaderLogResource,
   resolveYpodSchemaForValues,
 } from "../core/ypod-yaml.js";
+import { getLanguage, t, translateText } from "../core/i18n.js";
 
 const PLOTTER_CONFIG = window.HAQ_DATA_PLOTTER_CONFIG || {};
 const PROGRAM_NAME = PLOTTER_CONFIG.programName || "Fire-IQ";
@@ -162,6 +163,16 @@ function makePodChart(key, title, unit, minZero = false) {
 if (app) {
   init();
 }
+
+document.addEventListener("haq:languagechange", () => {
+  if (!app) {
+    return;
+  }
+
+  clearChartHover();
+  POD_KEYS.forEach(updateFileReadout);
+  renderAll();
+});
 
 function makePodState(label) {
   return {
@@ -1248,7 +1259,7 @@ function drawEmptyChart(context, width, theme) {
 
   context.fillStyle = theme.emptyText;
   context.font = "12px Arial, Helvetica, sans-serif";
-  context.fillText("No data loaded", 14, 24);
+  context.fillText(t("chart.empty.noDataLoaded"), 14, 24);
 }
 
 function drawHoverTooltip(context, point, width, height, theme) {
@@ -1320,7 +1331,12 @@ function updateChartStats(chart, recordsByPod = visibleRecordsByPod()) {
       }
 
       const avg = sum / count;
-      return `${getSeriesLegendLabel(series)}: min ${formatNumber(min)} / avg ${formatNumber(avg)} / max ${formatNumber(max)}`;
+      return t("chart.stats.seriesRange", {
+        label: getSeriesLegendLabel(series),
+        min: formatNumber(min),
+        avg: formatNumber(avg),
+        max: formatNumber(max),
+      });
     })
     .filter(Boolean);
 
@@ -1456,7 +1472,7 @@ function exportGraphPng() {
 
   context.fillStyle = "#5c6672";
   context.font = "12px Arial, Helvetica, sans-serif";
-  context.fillText("HAQ Lab, University of Colorado", padding, height - 18);
+  context.fillText(t("export.footer"), padding, height - 18);
 
   const link = document.createElement("a");
   link.href = exportCanvas.toDataURL("image/png");
@@ -1466,7 +1482,9 @@ function exportGraphPng() {
 
 function drawExportHeader(context, width, padding) {
   const schemaStatus = query("[data-schema-status]").textContent;
-  const timeSummary = state.timeMode === "elapsed" ? "elapsed-time alignment" : "recorded date/time";
+  const timeSummary = state.timeMode === "elapsed"
+    ? t("export.alignment.elapsed")
+    : t("export.alignment.recorded");
   const fileSummary = activePodKeys()
     .filter((podKey) => state.pods[podKey].fileName)
     .map((podKey) => `${getPodDisplayName(podKey)}: ${state.pods[podKey].fileName}`)
@@ -1475,7 +1493,7 @@ function drawExportHeader(context, width, padding) {
   context.fillStyle = "#17202a";
   context.font = "700 22px Arial, Helvetica, sans-serif";
   context.fillText(
-    PLOTTER_CONFIG.exportTitle || `${PROGRAM_NAME} ${MAX_PODS === 2 ? `Dual-${POD_NAME}` : POD_NAME} Data Visualization`,
+    translateText(PLOTTER_CONFIG.exportTitle || `${PROGRAM_NAME} ${MAX_PODS === 2 ? `Dual-${POD_NAME}` : POD_NAME} Data Visualization`),
     padding,
     34,
   );
@@ -1483,11 +1501,16 @@ function drawExportHeader(context, width, padding) {
   context.fillStyle = "#5c6672";
   context.font = "13px Arial, Helvetica, sans-serif";
   context.fillText(
-    `Exported ${new Date().toLocaleString()} — ${schemaStatus} — ${timeSummary}, ${state.zoomFactor}× zoom`,
+    t("export.summary", {
+      date: new Date().toLocaleString(getLanguage()),
+      schemaStatus,
+      timeSummary,
+      zoom: state.zoomFactor,
+    }),
     padding,
     58,
   );
-  context.fillText(fileSummary || "No files loaded", padding, 76);
+  context.fillText(fileSummary || t("export.noFilesLoaded"), padding, 76);
 
   context.strokeStyle = "#d9dee6";
   context.beginPath();
@@ -1637,15 +1660,11 @@ function formatNumber(value) {
     return "--";
   }
 
-  if (Math.abs(value) >= 100) {
-    return value.toFixed(0);
-  }
-
-  if (Math.abs(value) >= 10) {
-    return value.toFixed(1);
-  }
-
-  return value.toFixed(2);
+  const fractionDigits = Math.abs(value) >= 100 ? 0 : Math.abs(value) >= 10 ? 1 : 2;
+  return value.toLocaleString(getLanguage(), {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  });
 }
 
 function formatExactNumber(value) {
@@ -1680,19 +1699,19 @@ function formatElapsed(milliseconds) {
 }
 
 function formatDateTime(date) {
-  return `${date.toLocaleDateString()} ${formatTime(date)}`;
+  return `${date.toLocaleDateString(getLanguage())} ${formatTime(date)}`;
 }
 
 function formatTimeSpan(first, last) {
   if (first.toDateString() === last.toDateString()) {
-    return `${first.toLocaleDateString()} ${formatTime(first)} → ${formatTime(last)}`;
+    return `${first.toLocaleDateString(getLanguage())} ${formatTime(first)} → ${formatTime(last)}`;
   }
 
   return `${formatDateTime(first)} → ${formatDateTime(last)}`;
 }
 
 function formatTime(date, includeSeconds = true) {
-  return date.toLocaleTimeString([], {
+  return date.toLocaleTimeString(getLanguage(), {
     hour: "2-digit",
     minute: "2-digit",
     ...(includeSeconds ? { second: "2-digit" } : {}),

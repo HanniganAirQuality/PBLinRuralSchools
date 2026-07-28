@@ -1,4 +1,5 @@
 import { showSafariLiveViewerWarning } from "../core/browser-warning.js";
+import { getLanguage, t, translateText } from "../core/i18n.js";
 import { SerialLineReader } from "../core/serial-lines.js";
 import {
   SPOD_HEADER_LOG_PAGE,
@@ -129,6 +130,19 @@ if (app) {
   showSafariLiveViewerWarning();
   init();
 }
+
+document.addEventListener("haq:languagechange", () => {
+  if (!app) {
+    return;
+  }
+
+  clearChartHover();
+  const latest = state.records[state.records.length - 1];
+  if (latest) {
+    updateReadout(latest);
+  }
+  renderAll();
+});
 
 async function init() {
   bindControls();
@@ -1609,7 +1623,7 @@ function exportGraphPng() {
 
   context.fillStyle = "#5c6672";
   context.font = "12px Arial, Helvetica, sans-serif";
-  context.fillText("HAQ Lab, University of Colorado", padding, height - 18);
+  context.fillText(t("export.footer"), padding, height - 18);
 
   const link = document.createElement("a");
   link.href = exportCanvas.toDataURL("image/png");
@@ -1622,11 +1636,13 @@ function drawExportHeader(context, width, padding) {
   const schemaStatus = query("[data-schema-status]").textContent;
   context.fillStyle = "#17202a";
   context.font = "700 22px Arial, Helvetica, sans-serif";
-  context.fillText(VIEWER_CONFIG.exportTitle || "AQIQ YPOD Live Visualization", padding, 34);
+  context.fillText(translateText(VIEWER_CONFIG.exportTitle || "AQIQ YPOD Live Visualization"), padding, 34);
 
   context.fillStyle = "#5c6672";
   context.font = "13px Arial, Helvetica, sans-serif";
-  context.fillText(`Exported ${new Date().toLocaleString()}`, padding, 58);
+  context.fillText(t("export.exportedAt", {
+    date: new Date().toLocaleString(getLanguage()),
+  }), padding, 58);
   context.fillText(schemaStatus, padding, 76);
 
   context.strokeStyle = "#d9dee6";
@@ -2312,7 +2328,7 @@ function drawEmptyChart(context, width, theme) {
 
   context.fillStyle = theme.emptyText;
   context.font = "12px Arial, Helvetica, sans-serif";
-  context.fillText("Awaiting data", 14, 24);
+  context.fillText(t("chart.empty.awaitingData"), 14, 24);
 }
 
 function getLiveChartTheme() {
@@ -2355,10 +2371,16 @@ function cssVar(name, fallback) {
 function updateChartStats(chart, records) {
   if (chart.isCombined) {
     const axisSummary = getChartAxisGroups(chart)
-      .map((axisGroup) => `${axisGroup.id === "left" ? "L" : "R"} ${axisGroup.unitLabel || "axis"}`)
+      .map((axisGroup) => {
+        const sideKey = axisGroup.id === "left" ? "chart.axis.leftShort" : "chart.axis.rightShort";
+        return `${t(sideKey)} ${axisGroup.unitLabel || t("chart.axis.default")}`;
+      })
       .join(" | ");
-    query(`[data-chart-stats="${chart.stats}"]`).textContent =
-      `${chart.sources.length} plots${axisSummary ? ` | ${axisSummary}` : ""}`;
+    const plotsKey = chart.sources.length === 1 ? "chart.plots.one" : "chart.plots.other";
+    query(`[data-chart-stats="${chart.stats}"]`).textContent = t(plotsKey, {
+      count: chart.sources.length,
+      axisSummary,
+    });
     return;
   }
 
@@ -2375,8 +2397,10 @@ function updateChartStats(chart, records) {
 
   const min = Math.min(...values);
   const max = Math.max(...values);
-  query(`[data-chart-stats="${chart.stats}"]`).textContent =
-    `min ${formatNumber(min)} | max ${formatNumber(max)}`;
+  query(`[data-chart-stats="${chart.stats}"]`).textContent = t("chart.stats.range", {
+    min: formatNumber(min),
+    max: formatNumber(max),
+  });
 }
 
 function scaleValue(value, fromMin, fromMax, toMin, toMax) {
@@ -2422,19 +2446,15 @@ function formatNumber(value) {
     return "--";
   }
 
-  if (Math.abs(value) >= 100) {
-    return value.toFixed(0);
-  }
-
-  if (Math.abs(value) >= 10) {
-    return value.toFixed(1);
-  }
-
-  return value.toFixed(2);
+  const fractionDigits = Math.abs(value) >= 100 ? 0 : Math.abs(value) >= 10 ? 1 : 2;
+  return value.toLocaleString(getLanguage(), {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  });
 }
 
 function formatTime(date) {
-  return date.toLocaleTimeString([], {
+  return date.toLocaleTimeString(getLanguage(), {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",

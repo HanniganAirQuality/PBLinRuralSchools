@@ -1,0 +1,17 @@
+﻿key,page,page_link,english,translation,context,source_locations
+sqiq.aqiq.bf714c0d,sqiq,https://hanniganairquality.github.io/PBLinRuralSchools/sqiq/,AQIQ,,a text,sqiq/index.html:14
+sqiq.browser.based.spod.live.data.viewer.using.f73ed215,sqiq,https://hanniganairquality.github.io/PBLinRuralSchools/sqiq/,Browser-based SPOD live data viewer using Web Serial and the SPOD YAML schema.,,p text,sqiq/index.html:30
+sqiq.data.visualization.306fcb2b,sqiq,https://hanniganairquality.github.io/PBLinRuralSchools/sqiq/,Data Visualization,,h2 text,sqiq/index.html:35
+sqiq.fire.iq.e5a9b8df,sqiq,https://hanniganairquality.github.io/PBLinRuralSchools/sqiq/,Fire-IQ,,a text,sqiq/index.html:15
+sqiq.haq.lab.pbl.ecd45bff,sqiq,https://hanniganairquality.github.io/PBLinRuralSchools/sqiq/,HAQ Lab PBL,,a text,sqiq/index.html:11
+sqiq.haq.lab.university.of.colorado.dee0c56d,sqiq,https://hanniganairquality.github.io/PBLinRuralSchools/sqiq/,"HAQ Lab, University of Colorado",,span text,sqiq/index.html:42
+sqiq.hub.for.spod.live.viewing.data.visualization.3125b6de,sqiq,https://hanniganairquality.github.io/PBLinRuralSchools/sqiq/,"Hub for SPOD live viewing, data visualization, and soil-quality investigation tools.",,p text,sqiq/index.html:23
+sqiq.live.tool.b8a98a31,sqiq,https://hanniganairquality.github.io/PBLinRuralSchools/sqiq/,Live tool,,span text,sqiq/index.html:28; sqiq/index.html:34
+sqiq.live.viewer.cea59129,sqiq,https://hanniganairquality.github.io/PBLinRuralSchools/sqiq/,Live Viewer,,h2 text,sqiq/index.html:29
+sqiq.program.navigation.18aa621e,sqiq,https://hanniganairquality.github.io/PBLinRuralSchools/sqiq/,Program navigation,,nav[aria-label],sqiq/index.html:12
+sqiq.programs.ab14d0a7,sqiq,https://hanniganairquality.github.io/PBLinRuralSchools/sqiq/,Programs,,a text,sqiq/index.html:13
+sqiq.soil.quality.inquiry.program.346f2f93,sqiq,https://hanniganairquality.github.io/PBLinRuralSchools/sqiq/,Soil Quality InQuiry Program,,h1 text,sqiq/index.html:22
+sqiq.sqiq.0c578e07,sqiq,https://hanniganairquality.github.io/PBLinRuralSchools/sqiq/,SQIQ,,p text,sqiq/index.html:21
+sqiq.sqiq.tools.5a4d2b8a,sqiq,https://hanniganairquality.github.io/PBLinRuralSchools/sqiq/,SQIQ tools,,section[aria-label],sqiq/index.html:26
+sqiq.sqiq.tools.haq.lab.pbl.707de9f0,sqiq,https://hanniganairquality.github.io/PBLinRuralSchools/sqiq/,SQIQ Tools | HAQ Lab PBL,,title text,sqiq/index.html:6
+sqiq.upload.a.spod.csv.file.to.visualize.53986dd3,sqiq,https://hanniganairquality.github.io/PBLinRuralSchools/sqiq/,Upload a SPOD CSV file to visualize soil and environmental measurements.,,p text,sqiq/index.html:36

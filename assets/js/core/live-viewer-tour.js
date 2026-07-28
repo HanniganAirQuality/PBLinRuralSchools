@@ -67,7 +67,7 @@ function initLiveViewerTour() {
       chartSelector: ".chart-grid",
       setupText: "Plug each Arduino into your computer with USB before connecting.",
       connectText: "Use Connect to choose the serial device for a YPOD. The Arduino may appear under different names, such as CDC, UNO, Arduino, or USB Serial. Fire-IQ can connect two pods at once.",
-      chartText: "The graph area updates live for both pods. Use the plot toggles to choose which shared graphs are visible.",
+      chartText: "The graph area updates live for both PODs. Use the plot toggles to choose which shared graphs are visible.",
     });
   }
 }

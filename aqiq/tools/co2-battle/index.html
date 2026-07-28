@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AQIQ CO2 Battle | HAQ Lab PBL</title>
+  <title>AQIQ CO₂ Battle | HAQ Lab PBL</title>
   <link rel="stylesheet" href="../../../assets/css/main.css">
 </head>
 <body class="tool-page live-viewer-page co2-battle-page theme-aqiq">
@@ -27,8 +27,8 @@
     <section class="battle-directions" aria-labelledby="directions-title">
       <h2 id="directions-title">Start a round</h2>
       <ol>
-        <li>Connect Pod 1 and Pod 2.</li>
-        <li>Place each pod near the source you want to compare.</li>
+        <li>Connect POD 1 and POD 2.</li>
+        <li>Place each POD near the source you want to compare.</li>
         <li>Watch the live readings. The higher selected measurement leads.</li>
       </ol>
     </section>
@@ -36,8 +36,8 @@
     <section class="live-controls battle-pod-controls" aria-label="YPOD connections">
       <article class="pod-control-card" data-pod-controls="1">
         <label class="control-group" for="pod-1-name">
-          <span class="setting-label">Pod 1 name</span>
-          <input class="pod-label-input" id="pod-1-name" type="text" value="Pod 1" maxlength="32" data-pod-name="1">
+          <span class="setting-label">POD 1 name</span>
+          <input class="pod-label-input" id="pod-1-name" type="text" value="POD 1" maxlength="32" data-pod-name="1">
         </label>
         <button class="primary-action" type="button" data-connect-pod="1">Connect</button>
         <button type="button" data-disconnect-pod="1" disabled>Disconnect</button>
@@ -46,8 +46,8 @@
 
       <article class="pod-control-card" data-pod-controls="2">
         <label class="control-group" for="pod-2-name">
-          <span class="setting-label">Pod 2 name</span>
-          <input class="pod-label-input" id="pod-2-name" type="text" value="Pod 2" maxlength="32" data-pod-name="2">
+          <span class="setting-label">POD 2 name</span>
+          <input class="pod-label-input" id="pod-2-name" type="text" value="POD 2" maxlength="32" data-pod-name="2">
         </label>
         <button class="primary-action" type="button" data-connect-pod="2">Connect</button>
         <button type="button" data-disconnect-pod="2" disabled>Disconnect</button>
@@ -83,14 +83,14 @@
 
     <section class="battle-toolbar" aria-label="Battle controls and status">
       <button type="button" data-reset-round>Reset round</button>
-      <div class="battle-leader" data-battle-leader role="status" aria-live="polite">Waiting for both pods</div>
+      <div class="battle-leader" data-battle-leader role="status" aria-live="polite">Waiting for both PODs</div>
       <div class="battle-scale-label">Shared scale: 0–<span data-scale-maximum>1,000</span> <span data-measurement-unit>ppm</span></div>
     </section>
 
     <section class="battle-grid" aria-label="Live YPOD measurement comparison">
       <article class="battle-card" data-battle-card="1">
         <header>
-          <h2 data-pod-title="1">Pod 1</h2>
+          <h2 data-pod-title="1">POD 1</h2>
           <p>Live <span data-measurement-label>CO<sub>2</sub></span></p>
         </header>
         <strong class="battle-reading"><span data-current-value="1">--</span> <span data-measurement-unit>ppm</span></strong>
@@ -110,7 +110,7 @@
 
       <article class="battle-card" data-battle-card="2">
         <header>
-          <h2 data-pod-title="2">Pod 2</h2>
+          <h2 data-pod-title="2">POD 2</h2>
           <p>Live <span data-measurement-label>CO<sub>2</sub></span></p>
         </header>
         <strong class="battle-reading"><span data-current-value="2">--</span> <span data-measurement-unit>ppm</span></strong>

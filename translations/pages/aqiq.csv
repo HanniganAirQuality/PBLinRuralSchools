@@ -1,0 +1,51 @@
+﻿key,page,page_link,english,translation,context,source_locations
+aqiq.air.quality.investigation.questions.b64a9736,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Air Quality Investigation Questions,,h1 text,aqiq/index.html:21
+aqiq.aqiq.bf714c0d,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,AQIQ,,p text,aqiq/index.html:20
+aqiq.aqiq.demo.kit.1ddfc19c,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,AQIQ Demo Kit,,span text,aqiq/index.html:66
+aqiq.aqiq.tools.ff4d3db1,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,AQIQ tools,,section[aria-label],aqiq/index.html:25
+aqiq.aqiq.tools.haq.lab.pbl.95930f7b,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,AQIQ Tools | HAQ Lab PBL,,title text,aqiq/index.html:6
+aqiq.browser.based.ypod.live.data.viewer.using.5b2827ea,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Browser-based YPOD live data viewer using Web Serial.,,p text,aqiq/index.html:29
+aqiq.bucket.and.balls.8beae08b,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Bucket and balls,,span text,aqiq/index.html:49
+aqiq.curriculum.23364909,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Curriculum,,h2 text,aqiq/index.html:41
+aqiq.data.visualization.306fcb2b,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Data Visualization,,a text; h2 text,aqiq/index.html:123; aqiq/index.html:34
+aqiq.download.poster.template.504187c0,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Download Poster Template,,button text,aqiq/index.html:139; aqiq/index.html:156
+aqiq.download.reference.powerpoint.6990e6d5,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Download Reference PowerPoint,,a text; button text,aqiq/index.html:106; aqiq/index.html:122; aqiq/index.html:138; aqiq/index.html:155; aqiq/index.html:54; aqiq/index.html:71; aqiq/index.html:90
+aqiq.example.aqiq.data.4a9dfb04,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Example AQIQ data,,span text,aqiq/index.html:118
+aqiq.fire.iq.e5a9b8df,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Fire-IQ,,a text,aqiq/index.html:14
+aqiq.first.visit.2485b82f,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,First Visit,,h3 text,aqiq/index.html:44
+aqiq.haq.lab.pbl.ecd45bff,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,HAQ Lab PBL,,a text,aqiq/index.html:11
+aqiq.haq.lab.university.of.colorado.dee0c56d,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,"HAQ Lab, University of Colorado",,span text,aqiq/index.html:165
+aqiq.hub.for.ypod.live.viewing.data.plotting.6c4a4bc3,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,"Hub for YPOD live viewing, data plotting, and curriculum resources.",,p text,aqiq/index.html:22
+aqiq.introduction.powerpoint.69388eb7,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Introduction PowerPoint,,span text,aqiq/index.html:50
+aqiq.laptop.that.can.run.the.live.viewer.e648380a,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Laptop that can run the Live Viewer,,span text,aqiq/index.html:86
+aqiq.launch.co2.battle.37963f1f,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Launch CO2 Battle,,a text,aqiq/index.html:72
+aqiq.lesson.1.2ff2e62b,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Lesson 1,,h3 text,aqiq/index.html:60
+aqiq.lesson.1.powerpoint.e9ec6ebd,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Lesson 1 PowerPoint,,span text,aqiq/index.html:67
+aqiq.lesson.2.969f356e,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Lesson 2,,h3 text,aqiq/index.html:78
+aqiq.lesson.2.presentation.6811f86d,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Lesson 2 Presentation,,span text,aqiq/index.html:83
+aqiq.lesson.3.249e6eb0,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Lesson 3,,h3 text,aqiq/index.html:97
+aqiq.lesson.3.presentation.9c68c52d,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Lesson 3 Presentation,,span text,aqiq/index.html:102
+aqiq.lesson.4.a9044227,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Lesson 4,,h3 text,aqiq/index.html:112
+aqiq.lesson.4.presentation.558458e0,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Lesson 4 Presentation,,span text,aqiq/index.html:117
+aqiq.lesson.5.1a9d3a57,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Lesson 5,,h3 text,aqiq/index.html:129
+aqiq.lesson.5.presentation.2a5adabb,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Lesson 5 Presentation,,span text,aqiq/index.html:134
+aqiq.live.tool.b8a98a31,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Live tool,,span text,aqiq/index.html:27; aqiq/index.html:33
+aqiq.live.viewer.cea59129,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Live Viewer,,a text; h2 text,aqiq/index.html:28; aqiq/index.html:91
+aqiq.mentors.do.a.live.demonstration.of.the.feb44892,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Mentors do a live demonstration of the YPODs being used to measure car emissions and talk about the relevant pollutants.,,p text,aqiq/index.html:79
+aqiq.mentors.go.out.and.meet.their.school.17f59dc5,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Mentors go out and meet their school in person to break the ice and teach the students about the PBL Program and CU Boulder.,,p text,aqiq/index.html:45
+aqiq.mentors.guide.students.as.they.begin.brainstorming.488c035e,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Mentors guide students as they begin brainstorming their own project ideas.,,p text,aqiq/index.html:98
+aqiq.mentors.introduce.the.concept.of.air.quality.136ecdf7,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Mentors introduce the concept of air quality and the YPOD sensors. The students participate in activities to demonstrate pollutants from household sources,,p text,aqiq/index.html:61
+aqiq.mentors.show.students.how.to.use.plotting.d374c085,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,"Mentors show students how to use plotting tools to analyze their data, and talk about common pitfalls to avoid.",,p text,aqiq/index.html:113
+aqiq.mentors.show.the.students.example.posters.and.d39024e9,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Mentors show the students example posters and discuss effective ways to present their findings.,,p text,aqiq/index.html:130
+aqiq.pbl.kit.2.pods.1.battery.c7b3c406,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,"PBL Kit: 2 Pods, 1 Battery",,span text,aqiq/index.html:65
+aqiq.poster.stands.771749e9,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Poster Stands,,span text,aqiq/index.html:151
+aqiq.printed.posters.37e3e4f4,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Printed Posters,,span text,aqiq/index.html:150
+aqiq.program.navigation.18aa621e,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Program navigation,,nav[aria-label],aqiq/index.html:12
+aqiq.programs.ab14d0a7,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Programs,,a text,aqiq/index.html:13
+aqiq.resources.and.tools.7bc816ea,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Resources and Tools,,p text,aqiq/index.html:105; aqiq/index.html:121; aqiq/index.html:137; aqiq/index.html:154; aqiq/index.html:53; aqiq/index.html:70; aqiq/index.html:89
+aqiq.supplies.14e351e1,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Supplies,,p text,aqiq/index.html:101; aqiq/index.html:116; aqiq/index.html:133; aqiq/index.html:149; aqiq/index.html:48; aqiq/index.html:64; aqiq/index.html:82
+aqiq.symposium.5d01a850,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Symposium,,h3 text,aqiq/index.html:145
+aqiq.the.students.present.their.research.to.teachers.1db8f4b4,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,"The students present their research to teachers, peers, and community members.",,p text,aqiq/index.html:146
+aqiq.upload.a.ypod.csv.file.to.visualize.64171105,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,Upload a YPOD CSV file to visualize air-quality and environmental measurements.,,p text,aqiq/index.html:35
+aqiq.usb.c.cable.10801e3e,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,USB-C cable,,span text,aqiq/index.html:85
+aqiq.ypod.sensor.kit.8a00fc5d,aqiq,https://hanniganairquality.github.io/PBLinRuralSchools/aqiq/,YPOD sensor kit,,span text,aqiq/index.html:84

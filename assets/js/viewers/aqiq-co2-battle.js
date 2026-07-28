@@ -1,3 +1,4 @@
+import { getLanguage } from "../core/i18n.js";
 import { SerialLineReader } from "../core/serial-lines.js";
 import {
   getPreferredYpodSection,
@@ -23,13 +24,19 @@ if (app) {
   init();
 }
 
+document.addEventListener("haq:languagechange", () => {
+  if (app) {
+    renderBattle();
+  }
+});
+
 async function init() {
   bindControls();
   renderBattle();
 
   if (!SerialLineReader.isSupported()) {
     state.pods.forEach((pod) => {
-      setPodStatus(pod, "Web Serial unavailable—use Chrome or Edge");
+      setPodStatus(pod, "Web Serial unavailable—use Chrome, Edge, or Firefox");
       setConnectionButtons(pod, { unavailable: true });
     });
   }
@@ -195,7 +202,7 @@ async function connectPod(id) {
 
     pod.connecting = true;
     setConnectionButtons(pod, { connecting: true });
-    setPodStatus(pod, "Choose this pod's serial port…");
+    setPodStatus(pod, "Choose this POD's serial port…");
 
     const serial = new SerialLineReader({
       baudRate: BAUD_RATE,
@@ -270,7 +277,7 @@ function handleSerialLine(pod, line) {
   pod.current = measurement;
   pod.peak = pod.peak === null ? measurement : Math.max(pod.peak, measurement);
   pod.sampleCount += 1;
-  setPodStatus(pod, `Live · ${pod.sampleCount.toLocaleString()} sample${pod.sampleCount === 1 ? "" : "s"}`);
+  setPodStatus(pod, `Live · ${pod.sampleCount.toLocaleString(getLanguage())} sample${pod.sampleCount === 1 ? "" : "s"}`);
   renderBattle();
 }
 
@@ -328,7 +335,11 @@ function renderLeader() {
 
   if (first.current === null || second.current === null) {
     const waitingFor = state.pods.filter((pod) => pod.current === null).map(getPodName);
-    leader.textContent = `Waiting for ${waitingFor.join(" and ")}`;
+    const waitingList = new Intl.ListFormat(getLanguage(), {
+      style: "long",
+      type: "conjunction",
+    }).format(waitingFor);
+    leader.textContent = `Waiting for ${waitingList}`;
     return;
   }
 
@@ -379,7 +390,7 @@ function getPod(id) {
 
 function getPodName(pod) {
   const input = app.querySelector(`[data-pod-name="${pod.id}"]`);
-  return input.value.trim() || `Pod ${pod.id}`;
+  return input.value.trim() || `POD ${pod.id}`;
 }
 
 function findSelectedColumnIndex(schema) {
@@ -498,9 +509,9 @@ function formatReading(value) {
 
   const absolute = Math.abs(value);
   const maximumFractionDigits = absolute >= 100 ? 0 : absolute >= 10 ? 1 : 2;
-  return value.toLocaleString(undefined, { maximumFractionDigits });
+  return value.toLocaleString(getLanguage(), { maximumFractionDigits });
 }
 
 function formatScale(value) {
-  return value.toLocaleString(undefined, { maximumFractionDigits: 1 });
+  return value.toLocaleString(getLanguage(), { maximumFractionDigits: 1 });
 }
