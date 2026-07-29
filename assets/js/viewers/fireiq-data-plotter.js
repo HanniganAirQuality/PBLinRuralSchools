@@ -207,9 +207,6 @@ function bindControls() {
       query(`[data-csv-input="${button.dataset.loadPod}"]`).click();
     });
   });
-  app.querySelectorAll("[data-clear-pod]").forEach((button) => {
-    button.addEventListener("click", () => clearPod(button.dataset.clearPod));
-  });
   app.querySelectorAll("[data-pod-id]").forEach((input) => {
     input.addEventListener("input", () => {
       clearChartHover();
@@ -377,7 +374,6 @@ async function loadFile(podKey, file) {
     setPodStatus(podKey, `${file.name} loaded`);
   }
 
-  query(`[data-clear-pod="${podKey}"]`).disabled = pod.records.length === 0;
   renderAll();
 }
 
@@ -632,7 +628,6 @@ function clearPod(podKey) {
   state.pods[podKey] = makePodState(state.pods[podKey].label);
   setPodStatus(podKey, "No file loaded");
   updateFileReadout(podKey);
-  query(`[data-clear-pod="${podKey}"]`).disabled = true;
   renderAll();
 }
 

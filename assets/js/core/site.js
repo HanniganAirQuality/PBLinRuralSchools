@@ -16,6 +16,7 @@ initializeSite();
 
 async function initializeSite() {
   await initializeI18n();
+  mountPlotControls();
   mountHeaderControls();
 }
 
@@ -32,17 +33,18 @@ function mountHeaderControls() {
     return;
   }
 
-  let controls = header.querySelector(".site-nav");
+  const headerActions = header.querySelector(".site-header-actions");
+  let controls = headerActions?.querySelector(".site-nav") || header.querySelector(".site-nav");
 
   if (!controls) {
     controls = document.createElement("nav");
     controls.className = "site-nav";
     controls.setAttribute("aria-label", t("common.navigation.siteControls"));
-    header.append(controls);
-  }
-
-  if (document.querySelector(".chart-grid")) {
-    controls.append(makeHeaderButton(t("common.actions.scrollToGraphs"), "scroll-to-graphs", scrollToGraphs));
+    if (headerActions) {
+      headerActions.prepend(controls);
+    } else {
+      header.append(controls);
+    }
   }
 
   if (document.querySelector("[data-live-viewer], [data-fire-iq-live-viewer]")) {
@@ -58,8 +60,37 @@ function mountHeaderControls() {
   themeIcon.setAttribute("aria-hidden", "true");
   themeButton.classList.add("theme-toggle-button");
   themeButton.append(themeIcon);
-  controls.append(themeButton);
+
+  if (headerActions) {
+    const preferences = document.createElement("div");
+    const languageSelector = headerActions.querySelector(".language-selector");
+    preferences.className = "site-preference-controls";
+    languageSelector?.before(preferences);
+    if (!preferences.parentElement) {
+      headerActions.append(preferences);
+    }
+    if (languageSelector) {
+      preferences.append(languageSelector);
+    }
+    preferences.append(themeButton);
+  } else {
+    controls.append(themeButton);
+  }
+
   updateThemeButton(themeButton);
+}
+
+function mountPlotControls() {
+  const plotSelections = document.querySelector(".basic-plot-settings");
+
+  if (!plotSelections || !document.querySelector(".chart-grid")) {
+    return;
+  }
+
+  const button = makeHeaderButton(t("common.actions.scrollToGraphs"), "scroll-to-graphs", scrollToGraphs);
+  button.classList.remove("site-control-button");
+  button.classList.add("scroll-to-graphs-button");
+  plotSelections.append(button);
 }
 
 function makeHeaderButton(label, controlName, onClick) {

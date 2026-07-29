@@ -187,6 +187,19 @@ p {
   gap: 0.75rem;
 }
 
+.site-header-actions .site-nav {
+  order: 1;
+}
+
+.site-preference-controls {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 0.5rem;
+  order: 2;
+}
+
 .language-selector {
   display: inline-flex;
   align-items: center;
@@ -718,6 +731,10 @@ input {
   background: var(--surface-panel);
 }
 
+.data-file-control-card {
+  grid-template-columns: minmax(8rem, 0.9fr) auto minmax(10rem, 1fr);
+}
+
 .pod-label-input {
   width: 100%;
   min-height: 2.25rem;
@@ -889,6 +906,10 @@ input {
   border-radius: 8px;
   background: var(--surface);
   box-shadow: 0 14px 34px var(--shadow-soft);
+}
+
+.scroll-to-graphs-button {
+  justify-self: end;
 }
 
 .single-pod-metrics {
@@ -1387,6 +1408,10 @@ input {
   .live-controls select,
   .connection-status,
   .control-group {
+    width: 100%;
+  }
+
+  .scroll-to-graphs-button {
     width: 100%;
   }
 

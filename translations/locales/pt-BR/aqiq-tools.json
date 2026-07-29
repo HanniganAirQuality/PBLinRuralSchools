@@ -90,7 +90,6 @@
   "dataPlotter.advancedSettingsAndFileDetails": "Configurações avançadas e detalhes de arquivo",
   "dataPlotter.celsius": "[Celsius]",
   "dataPlotter.charts.ariaLabel": "Gráficos AQIQ CSV",
-  "dataPlotter.clear": "Limpar",
   "dataPlotter.controls.ariaLabel": "Comandos de visualização de dados ",
   "dataPlotter.elapsedFromStart": "Descorrido desde o início",
   "dataPlotter.elapsedTimeStartsTheRecordingAt00": "O tempo decorrido começa em 0:00. A data e a hora registradas manêm os carimbos de data e hora armazenados no arquivo.",

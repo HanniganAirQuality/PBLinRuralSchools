@@ -97,7 +97,6 @@
   "dataPlotter.advancedSettingsAndFileDetails": "Advanced settings and file details",
   "dataPlotter.celsius": "[Celsius]",
   "dataPlotter.charts.ariaLabel": "AQIQ CSV charts",
-  "dataPlotter.clear": "Clear",
   "dataPlotter.controls.ariaLabel": "Data visualization controls",
   "dataPlotter.elapsedFromStart": "Elapsed from start",
   "dataPlotter.elapsedTimeStartsTheRecordingAt00": "Elapsed time starts the recording at 00:00:00. Recorded date and time preserves the timestamps stored in the file.",

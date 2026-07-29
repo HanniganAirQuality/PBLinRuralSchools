@@ -25,11 +25,10 @@
     </section>
 
     <section class="live-controls fire-pod-controls" aria-label="Data visualization controls">
-      <article class="pod-control-card">
+      <article class="pod-control-card data-file-control-card">
         <input class="pod-label-input" type="text" placeholder="YPOD label" aria-label="YPOD label" data-pod-id="pod1">
         <button type="button" class="primary-action" data-load-pod="pod1">Load CSV</button>
         <input type="file" accept=".csv,.txt,text/csv" data-csv-input="pod1" hidden>
-        <button type="button" data-clear-pod="pod1" disabled>Clear</button>
         <div class="connection-status" data-pod-status="pod1" aria-live="polite">No file loaded</div>
       </article>
 
