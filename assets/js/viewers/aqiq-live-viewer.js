@@ -1184,9 +1184,9 @@ function mapSerialValues(values, rawLine, receivedAt = new Date()) {
 
   const numericValues = {};
   schema.columns.forEach((column, index) => {
-    const value = Number(normalizedValues[index]);
+    const value = parseMeasurementValue(normalizedValues[index]);
 
-    if (Number.isFinite(value)) {
+    if (value !== null) {
       numericValues[columnValueKey(index)] = value;
     }
   });
@@ -1287,8 +1287,24 @@ function getField(fields, aliases) {
 }
 
 function numberField(fields, aliases) {
-  const value = Number(getField(fields, aliases));
-  return Number.isFinite(value) ? value : null;
+  return parseMeasurementValue(getField(fields, aliases));
+}
+
+function parseMeasurementValue(rawValue) {
+  if (rawValue === null || rawValue === undefined) {
+    return null;
+  }
+
+  const value = String(rawValue).trim();
+
+  // SPOD uses NA for an enabled sensor that did not return a valid reading.
+  // Treat it as missing data so the row and its other measurements remain usable.
+  if (!value || /^(?:n\/?a|nan|null|undefined|--)$/i.test(value)) {
+    return null;
+  }
+
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
 }
 
 function reportSerialNotice(line, values) {
@@ -2235,12 +2251,21 @@ function drawSeries(context, records, series, plot, xMin, xMax, yRange, theme) {
   context.lineWidth = 2;
   context.beginPath();
 
-  usableRecords.forEach((record, index) => {
-    const x = scaleValue(record.timestamp.getTime(), xMin, xMax, plot.left, plot.right);
-    const y = scaleValue(record.values[series.key], yRange.min, yRange.max, plot.bottom, plot.top);
+  let segmentStarted = false;
+  records.forEach((record) => {
+    const value = record.values[series.key];
 
-    if (index === 0) {
+    if (!Number.isFinite(value)) {
+      segmentStarted = false;
+      return;
+    }
+
+    const x = scaleValue(record.timestamp.getTime(), xMin, xMax, plot.left, plot.right);
+    const y = scaleValue(value, yRange.min, yRange.max, plot.bottom, plot.top);
+
+    if (!segmentStarted) {
       context.moveTo(x, y);
+      segmentStarted = true;
     } else {
       context.lineTo(x, y);
     }
