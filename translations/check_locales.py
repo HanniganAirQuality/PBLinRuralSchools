@@ -43,6 +43,7 @@ class HtmlUsageParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.strings: set[str] = set()
+        self.keys: set[str] = set()
         self._ignored_depth = 0
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
@@ -53,6 +54,8 @@ class HtmlUsageParser(HTMLParser):
             return
 
         for name, value in attrs:
+            if name == "data-i18n" and value:
+                self.keys.add(value)
             if name in TRANSLATABLE_HTML_ATTRIBUTES and value:
                 self.strings.add(normalize_text(value))
 
@@ -60,6 +63,8 @@ class HtmlUsageParser(HTMLParser):
         if tag in IGNORED_HTML_ELEMENTS:
             return
         for name, value in attrs:
+            if name == "data-i18n" and value:
+                self.keys.add(value)
             if name in TRANSLATABLE_HTML_ATTRIBUTES and value:
                 self.strings.add(normalize_text(value))
 
@@ -118,8 +123,9 @@ def source_files() -> list[Path]:
     return sorted(files)
 
 
-def collect_source_usage() -> tuple[set[str], str, int]:
+def collect_source_usage() -> tuple[set[str], set[str], str, int]:
     html_strings: set[str] = set()
+    html_keys: set[str] = set()
     javascript_source: list[str] = []
     files = source_files()
 
@@ -130,10 +136,11 @@ def collect_source_usage() -> tuple[set[str], str, int]:
             parser.feed(source)
             parser.close()
             html_strings.update(parser.strings)
+            html_keys.update(parser.keys)
         elif path.suffix.lower() == ".js":
             javascript_source.append(source)
 
-    return html_strings, "\n".join(javascript_source), len(files)
+    return html_strings, html_keys, "\n".join(javascript_source), len(files)
 
 
 def quoted_key_is_used(key: str, javascript_source: str) -> bool:
@@ -154,7 +161,7 @@ def find_unused_entries(
     english_files: dict[Path, Path],
     catalogs: dict[Path, Catalog],
 ) -> tuple[dict[Path, set[str]], int]:
-    html_strings, javascript_source, scanned_file_count = collect_source_usage()
+    html_strings, html_keys, javascript_source, scanned_file_count = collect_source_usage()
     unused_by_file: dict[Path, set[str]] = {}
 
     for relative_path, path in english_files.items():
@@ -165,7 +172,8 @@ def find_unused_entries(
         unused = {
             key
             for key, value in catalog.entries.items()
-            if not quoted_key_is_used(key, javascript_source)
+            if key not in html_keys
+            and not quoted_key_is_used(key, javascript_source)
             and not english_value_is_used(value, html_strings, javascript_source)
         }
         if unused:

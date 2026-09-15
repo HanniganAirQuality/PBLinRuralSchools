@@ -121,7 +121,7 @@ async function initialize() {
   ensureLanguageControl();
   startObserver();
   await setLanguage(currentLanguage, { persist: false });
-  document.documentElement.dataset.i18n = "ready";
+  document.documentElement.dataset.i18nReady = "";
 }
 
 function readStoredLanguage() {
@@ -140,7 +140,8 @@ function readStoredLanguage() {
 
 function getCatalogContext() {
   const path = decodeURIComponent(window.location.pathname).replace(/\\/g, "/");
-  const toolMatch = path.match(/\/(?:aqiq|fire-iq|sqiq)\/tools\/(live-viewer|data-plotter|co2-battle)(?:\/|\/index\.html)?$/i);
+  const toolMatch = path.match(/\/(?:aqiq|fire-iq|sqiq)\/tools\/(live-viewer|data-plotter|co2-battle|soil-respiration)(?:\/|\/index\.html)?$/i);
+  const programMatch = path.match(/\/(aqiq|fire-iq|sqiq|water-iq)\/(?:index\.html)?$/i);
 
   if (document.body?.classList.contains("landing")) {
     return {
@@ -154,6 +155,7 @@ function getCatalogContext() {
       "co2-battle": "co2Battle.",
       "data-plotter": "dataPlotter.",
       "live-viewer": "liveViewer.",
+      "soil-respiration": "soilRespiration.",
     };
     return {
       file: "aqiq-tools.json",
@@ -166,10 +168,16 @@ function getCatalogContext() {
     };
   }
 
-  if (/\/(?:aqiq|fire-iq|sqiq|water-iq)\/(?:index\.html)?$/i.test(path)) {
+  if (programMatch) {
+    const programNamespaces = {
+      aqiq: "aqiq.",
+      "fire-iq": "fireIq.",
+      sqiq: "sqiq.",
+      "water-iq": "waterIq.",
+    };
     return {
       file: "aqiq.json",
-      namespaces: ["common.", "aqiq."],
+      namespaces: ["common.", "aqiq.", programNamespaces[programMatch[1].toLowerCase()]],
     };
   }
 
@@ -371,6 +379,8 @@ function translateTree(root) {
     return;
   }
 
+  translateElementText(root);
+  root.querySelectorAll("[data-i18n]").forEach(translateElementText);
   translateElementAttributes(root);
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   let node = walker.nextNode();
@@ -381,6 +391,19 @@ function translateTree(root) {
   }
 
   root.querySelectorAll("*").forEach(translateElementAttributes);
+}
+
+function translateElementText(element) {
+  const key = element.dataset.i18n;
+
+  if (!key) {
+    return;
+  }
+
+  const rendered = t(key);
+  if (element.textContent !== rendered) {
+    element.textContent = rendered;
+  }
 }
 
 function translateTextNode(node) {
@@ -463,6 +486,7 @@ function startObserver() {
       if (mutation.type === "characterData") {
         translateTextNode(mutation.target);
       } else if (mutation.type === "attributes") {
+        translateElementText(mutation.target);
         translateElementAttributes(mutation.target);
       } else {
         mutation.addedNodes.forEach(translateTree);
@@ -474,7 +498,7 @@ function startObserver() {
     childList: true,
     characterData: true,
     attributes: true,
-    attributeFilter: TRANSLATABLE_ATTRIBUTES,
+    attributeFilter: [...TRANSLATABLE_ATTRIBUTES, "data-i18n"],
   });
 }
 

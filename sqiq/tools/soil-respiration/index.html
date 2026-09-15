@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="soilRespiration.page.browserTitle"></title>
+  <link rel="icon" href="../../../favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="../../../assets/css/main.css">
+</head>
+<body class="tool-page respiration-page theme-sqiq">
+  <header class="site-header">
+    <a class="brand" href="../../../" data-i18n="common.brand"></a>
+    <nav class="site-nav">
+      <a href="../../" data-i18n="soilRespiration.navigation.sqiqHub"></a>
+    </nav>
+  </header>
+
+  <main class="respiration-shell" data-soil-respiration>
+    <header class="respiration-header" aria-labelledby="page-title">
+      <p class="eyebrow" data-i18n="soilRespiration.page.eyebrow"></p>
+      <h1 id="page-title" data-i18n="soilRespiration.page.title"></h1>
+    </header>
+
+    <section class="respiration-setup" aria-labelledby="setup-title">
+      <div class="respiration-setup-copy">
+        <h2 id="setup-title" data-i18n="soilRespiration.setup.title"></h2>
+        <ol>
+          <li data-i18n="soilRespiration.setup.step1"></li>
+          <li data-i18n="soilRespiration.setup.step2"></li>
+          <li data-i18n="soilRespiration.setup.step3"></li>
+          <li data-i18n="soilRespiration.setup.step4"></li>
+          <li data-i18n="soilRespiration.setup.step5"></li>
+          <li data-i18n="soilRespiration.setup.step6"></li>
+        </ol>
+      </div>
+      <img class="respiration-setup-art" src="../../../assets/curriculum/sqiq/soil-respiration-setup.svg" alt="">
+    </section>
+
+    <section class="respiration-measurement" aria-labelledby="measurement-title">
+      <div class="respiration-measurement-header">
+        <div>
+          <h2 id="measurement-title" data-i18n="soilRespiration.measurement.title"></h2>
+          <p data-i18n="soilRespiration.measurement.instructions"></p>
+        </div>
+        <div class="respiration-file-control">
+          <button class="primary-action" type="button" data-load-file data-i18n="soilRespiration.file.upload"></button>
+          <input type="file" accept=".csv,.txt,text/csv,text/plain" data-file-input hidden>
+          <span class="connection-status" role="status" data-file-status data-i18n="soilRespiration.file.none"></span>
+        </div>
+      </div>
+
+      <div class="respiration-workspace">
+        <div class="respiration-chart-panel">
+          <h3 id="respiration-chart-title" data-i18n="soilRespiration.chart.title"></h3>
+          <canvas data-respiration-chart role="img" aria-labelledby="respiration-chart-title"></canvas>
+          <p class="respiration-selection-status" role="status" data-selection-status data-i18n="soilRespiration.selection.first"></p>
+        </div>
+
+        <div class="respiration-calculation">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col" data-i18n="soilRespiration.table.variable"></th>
+                <th scope="col" data-i18n="soilRespiration.table.value"></th>
+                <th scope="col" data-i18n="soilRespiration.table.units"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row" data-i18n="soilRespiration.variable.pressure"></th><td data-i18n="soilRespiration.constant.pressure"></td><td data-i18n="soilRespiration.unit.pressure"></td></tr>
+              <tr><th scope="row" data-i18n="soilRespiration.variable.gasConstant"></th><td data-i18n="soilRespiration.constant.gasConstant"></td><td data-i18n="soilRespiration.unit.gasConstant"></td></tr>
+              <tr><th scope="row" data-i18n="soilRespiration.variable.molarMass"></th><td data-i18n="soilRespiration.constant.molarMass"></td><td data-i18n="soilRespiration.unit.molarMass"></td></tr>
+              <tr><th scope="row" data-i18n="soilRespiration.variable.height"></th><td data-i18n="soilRespiration.constant.height"></td><td data-i18n="soilRespiration.unit.height"></td></tr>
+              <tr><th scope="row" data-i18n="soilRespiration.variable.temperature"></th><td data-result-temperature></td><td data-i18n="soilRespiration.unit.temperature"></td></tr>
+              <tr><th scope="row" data-i18n="soilRespiration.variable.deltaCo2"></th><td data-result-co2></td><td data-i18n="soilRespiration.unit.deltaCo2"></td></tr>
+              <tr><th scope="row" data-i18n="soilRespiration.variable.deltaTime"></th><td data-result-time></td><td data-i18n="soilRespiration.unit.deltaTime"></td></tr>
+              <tr class="respiration-result-row"><th scope="row" data-i18n="soilRespiration.variable.flux"></th><td data-result-flux></td><td data-i18n="soilRespiration.unit.flux"></td></tr>
+            </tbody>
+          </table>
+
+          <div class="respiration-formula" aria-hidden="true">
+            <span data-i18n="soilRespiration.variable.flux"></span><span data-i18n="soilRespiration.formula.equals"></span>
+            <span class="formula-fraction"><span data-i18n="soilRespiration.variable.deltaCo2"></span><span data-i18n="soilRespiration.variable.deltaTime"></span></span>
+            <span data-i18n="soilRespiration.formula.massHeight"></span>
+            <span class="formula-fraction"><span data-i18n="soilRespiration.variable.pressure"></span><span data-i18n="soilRespiration.formula.gasTemperature"></span></span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span data-i18n="common.footer"></span>
+    <span data-current-year></span>
+  </footer>
+
+  <script type="module" src="../../../assets/js/core/site.js"></script>
+  <script type="module" src="../../../assets/js/viewers/soil-respiration.js"></script>
+</body>
+</html>

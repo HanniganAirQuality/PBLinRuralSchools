@@ -444,14 +444,62 @@ p {
   border: 1px solid var(--line);
   border-left: 6px solid var(--accent);
   border-radius: 8px;
+  background: var(--surface-panel);
+}
+
+.curriculum-item summary {
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.curriculum-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.curriculum-item summary::after {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  content: "";
+  flex: 0 0 auto;
+  transform: rotate(45deg) translate(-0.15rem, 0.15rem);
+  transition: transform 160ms ease;
+}
+
+.curriculum-item[open] summary::after {
+  transform: rotate(225deg) translate(-0.15rem, 0.15rem);
+}
+
+.curriculum-item summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.curriculum-item summary h3 {
+  margin: 0;
+}
+
+.curriculum-content {
+  border-top: 1px solid var(--line);
   padding: 1rem;
   display: grid;
   gap: 0.85rem;
-  background: var(--surface-panel);
 }
 
 .curriculum-item p {
   margin-bottom: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .curriculum-item summary::after {
+    transition: none;
+  }
 }
 
 .curriculum-details {
@@ -1657,5 +1705,190 @@ input {
 
   .battle-card {
     min-height: 34rem;
+  }
+}
+
+/* SQIQ Lesson 1 soil respiration */
+.respiration-shell {
+  width: min(1180px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 2rem 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.respiration-header {
+  border-left: 6px solid var(--accent);
+  padding: 0.5rem 0 0.5rem 1rem;
+}
+
+.respiration-header h1,
+.respiration-setup h2,
+.respiration-measurement h2,
+.respiration-chart-panel h3 {
+  margin-top: 0;
+}
+
+.respiration-setup,
+.respiration-measurement {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 14px 34px var(--shadow-soft);
+}
+
+.respiration-setup {
+  padding: 1rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.9fr);
+  align-items: center;
+  gap: 1rem;
+}
+
+.respiration-setup-copy ol {
+  margin-bottom: 0;
+  padding-left: 1.5rem;
+}
+
+.respiration-setup-copy li + li {
+  margin-top: 0.65rem;
+}
+
+.respiration-setup-art {
+  width: 100%;
+  max-height: 25rem;
+  object-fit: contain;
+}
+
+.respiration-measurement {
+  padding: 1rem;
+}
+
+.respiration-measurement-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 1rem;
+}
+
+.respiration-measurement-header p {
+  margin-bottom: 0;
+}
+
+.respiration-file-control {
+  min-width: min(100%, 19rem);
+  display: grid;
+  gap: 0.5rem;
+}
+
+.respiration-page .primary-action {
+  color: #17202a;
+}
+
+.respiration-workspace {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(18rem, 0.75fr);
+  align-items: start;
+  gap: 1rem;
+}
+
+.respiration-chart-panel,
+.respiration-calculation {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.85rem;
+  background: var(--surface-soft);
+}
+
+.respiration-chart-panel canvas {
+  width: 100%;
+  height: 24rem;
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.respiration-selection-status {
+  min-height: 1.5rem;
+  margin: 0.65rem 0 0;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.respiration-calculation table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.respiration-calculation th,
+.respiration-calculation td {
+  border-bottom: 1px solid var(--line);
+  padding: 0.55rem 0.4rem;
+  text-align: left;
+}
+
+.respiration-calculation td:nth-child(2),
+.respiration-calculation th:nth-child(2) {
+  text-align: right;
+}
+
+.respiration-result-row {
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.respiration-formula {
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  color: var(--ink);
+  font-family: Georgia, serif;
+  font-size: 1.08rem;
+}
+
+.formula-fraction {
+  display: grid;
+  grid-template-rows: auto auto;
+  text-align: center;
+}
+
+.formula-fraction > span:first-child {
+  border-bottom: 1px solid currentColor;
+}
+
+@media (max-width: 850px) {
+  .respiration-setup,
+  .respiration-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .respiration-setup-art {
+    max-height: 20rem;
+  }
+}
+
+@media (max-width: 620px) {
+  .respiration-measurement-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .respiration-file-control {
+    width: 100%;
+  }
+
+  .respiration-chart-panel canvas {
+    height: 20rem;
+  }
+
+  .respiration-calculation {
+    overflow-x: auto;
   }
 }
