@@ -5,6 +5,7 @@
   "aqiq.curriculum": "Currículo",
   "aqiq.dataVisualization": "Plotadora estática",
   "aqiq.downloadPosterTemplate": "Baixar modelo de cartaz",
+  "aqiq.downloadLessonPdf": "Baixar PDF da lição",
   "aqiq.downloadReferencePowerpoint": "Baixar PowerPoint de Referência",
   "aqiq.exampleAqiqData": "Exemplo de dados do AQIQ",
   "aqiq.firstVisit": "Primeira visita",
@@ -47,5 +48,5 @@
   "aqiq.ypodSensorKit": "Kit de sensores YPOD",
   "common.brand": "HAQ Lab PBL",
   "common.fireIq": "Fire-IQ",
-  "common.footer": "HAQ Lab, Universidade do Colorado"
+  "common.footer": "Hannigan Air Quality and Technology Research Lab, University of Colorado Boulder"
 }
