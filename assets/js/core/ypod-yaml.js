@@ -42,7 +42,7 @@ const FALLBACK_SCHEMA = {
 };
 
 const SPOD_FALLBACK_SCHEMA = {
-  version: "SPOD_V2.0",
+  version: "SPOD_V1.2",
   section: "Uncalibrated",
   sourceUrl: SPOD_HEADER_LOG_URL,
   htmlUrl: SPOD_HEADER_LOG_PAGE,
@@ -54,8 +54,10 @@ const SPOD_FALLBACK_SCHEMA = {
     { name: "Firmware_Version", unit: "NA" },
     { name: "Temperature1", unit: "Celsius", defaultAxisRange: [0, 50] },
     { name: "Temperature2", unit: "Celsius", defaultAxisRange: [0, 50] },
-    { name: "CO2", unit: "ppm", defaultAxisRange: [0, 5000] },
-    { name: "Soil", unit: "ADU", defaultAxisRange: [0, 1023] },
+    { name: "Uncalibrated_CO2", unit: "ppm", defaultAxisRange: [0, 5000] },
+    { name: "Calibrated_CO2", unit: "ppm", defaultAxisRange: [0, 5000] },
+    { name: "Uncalibrated_Soil", unit: "ADU", defaultAxisRange: [0, 1023] },
+    { name: "Calibrated_Soil", unit: "%", defaultAxisRange: [0, 100] },
     { name: "Visible", unit: "ADU", defaultAxisRange: [0, 65535] },
     { name: "Infrared", unit: "ADU", defaultAxisRange: [0, 65535] },
     { name: "UV_Index", unit: "UV index", defaultAxisRange: [0, 15] },

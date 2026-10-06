@@ -16,7 +16,7 @@ const FIELDS = {
   date: ["Date"],
   temperature1: ["Temperature1"],
   temperature2: ["Temperature2"],
-  co2: ["CO2"],
+  co2: ["Calibrated_CO2", "CO2"],
 };
 const PADDING = { top: 18, right: 20, bottom: 42, left: 62 };
 
