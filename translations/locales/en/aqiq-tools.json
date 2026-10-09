@@ -246,5 +246,7 @@
   "soilRespiration.variable.height": "h",
   "soilRespiration.variable.molarMass": "M_CO₂",
   "soilRespiration.variable.pressure": "P_atmos",
-  "soilRespiration.variable.temperature": "T_avg"
+  "soilRespiration.variable.temperature": "T_avg",
+  "dataPlotter.downloadCsvWithHeaders": "Download CSV with headers",
+  "dataPlotter.interactiveColumnChart": "Interactive ${title} chart"
 }

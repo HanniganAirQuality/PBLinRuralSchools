@@ -28,6 +28,7 @@
       <article class="pod-control-card data-file-control-card">
         <input id="pod-1-id" class="pod-label-input" type="text" placeholder="YPOD 1 label" aria-label="YPOD 1 label" data-pod-id="pod1">
         <button type="button" class="primary-action" data-load-pod="pod1">Load CSV</button>
+        <button type="button" data-download-csv="pod1" data-i18n="dataPlotter.downloadCsvWithHeaders" disabled></button>
         <input type="file" accept=".csv,.txt,text/csv" data-csv-input="pod1" hidden>
         <div class="connection-status" data-pod-status="pod1" aria-live="polite">No file loaded</div>
       </article>
@@ -35,6 +36,7 @@
       <article class="pod-control-card data-file-control-card">
         <input id="pod-2-id" class="pod-label-input" type="text" placeholder="YPOD 2 label" aria-label="YPOD 2 label" data-pod-id="pod2">
         <button type="button" class="primary-action" data-load-pod="pod2">Load CSV</button>
+        <button type="button" data-download-csv="pod2" data-i18n="dataPlotter.downloadCsvWithHeaders" disabled></button>
         <input type="file" accept=".csv,.txt,text/csv" data-csv-input="pod2" hidden>
         <div class="connection-status" data-pod-status="pod2" aria-live="polite">No file loaded</div>
       </article>
@@ -68,6 +70,10 @@
       </div>
 
       <div class="plot-settings advanced-time-settings">
+        <fieldset class="plot-toggles column-toggles">
+          <legend class="setting-legend" data-i18n="liveViewer.columns"></legend>
+          <div data-column-toggles></div>
+        </fieldset>
         <div class="plot-view-controls">
           <label class="control-group" for="time-mode">
             <span class="setting-label">Time alignment <span class="setting-help" tabindex="0" aria-label="Time alignment help" data-help="Elapsed time starts the recording at 00:00:00. Recorded date and time preserves the timestamps stored in the file.">?</span></span>

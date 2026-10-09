@@ -136,6 +136,7 @@ const app = document.querySelector(
 const state = {
   yamlResource: null,
   schema: null,
+  columnCharts: {},
   displayWindowMs: DEFAULT_WINDOW_MINUTES * 60 * 1000,
   timeMode: "elapsed",
   zoomFactor: 1,
@@ -171,6 +172,10 @@ document.addEventListener("haq:languagechange", () => {
 
   clearChartHover();
   POD_KEYS.forEach(updateFileReadout);
+  app.querySelectorAll("[data-dynamic-chart-card]").forEach((card) => {
+    const chart = getAllCharts()[card.dataset.chartCard];
+    card.querySelector("canvas").setAttribute("aria-label", t("dataPlotter.interactiveColumnChart", { title: chart.title }));
+  });
   renderAll();
 });
 
@@ -206,6 +211,14 @@ function bindControls() {
     button.addEventListener("click", () => {
       query(`[data-csv-input="${button.dataset.loadPod}"]`).click();
     });
+  });
+  app.querySelectorAll("[data-download-csv]").forEach((button) => {
+    button.addEventListener("click", () => downloadCsv(button.dataset.downloadCsv));
+  });
+  query("[data-column-toggles]").addEventListener("change", () => {
+    clearChartHover();
+    syncColumnChartCards();
+    queueRender();
   });
   app.querySelectorAll("[data-pod-id]").forEach((input) => {
     input.addEventListener("input", () => {
@@ -322,6 +335,7 @@ function setActiveSchema(schema, { reparse = false } = {}) {
 
   const suffix = schema.isFallback ? "fallback" : `${schema.columns.length} columns`;
   schemaStatus.textContent = `${schema.version} ${schema.section}, ${suffix}`;
+  renderColumnToggles();
   updateChartHeadings();
 
   if (reparse) {
@@ -346,6 +360,96 @@ function reparseLoadedPods() {
     }
   });
   queueRender();
+}
+
+function renderColumnToggles() {
+  const target = query("[data-column-toggles]");
+  const checkedNames = new Set(
+    [...target.querySelectorAll("input:checked")].map((input) => input.dataset.columnName),
+  );
+  const fragment = document.createDocumentFragment();
+
+  state.schema.columns.forEach((column, index) => {
+    if (!isPlottableColumn(column)) {
+      return;
+    }
+    const label = document.createElement("label");
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.value = String(index);
+    input.dataset.columnPlotToggle = "";
+    input.dataset.columnName = column.name;
+    input.checked = checkedNames.has(column.name);
+    label.append(input, document.createTextNode(formatFieldLabel(column.name)));
+    fragment.append(label);
+  });
+
+  target.replaceChildren(fragment);
+  syncColumnChartCards();
+}
+
+function isPlottableColumn(column) {
+  const nonNumericUnits = new Set(["", "na", "id", "timestamp", "date", "time"]);
+  const timestampNames = [...FIELD_ALIASES.timestamp, ...FIELD_ALIASES.date]
+    .map(normalizeFieldName);
+  return !nonNumericUnits.has(String(column.unit || "").toLowerCase()) &&
+    !timestampNames.includes(normalizeFieldName(column.name));
+}
+
+function formatFieldLabel(name) {
+  return name.replace(/^Fig260[02]_/, "").replace(/_/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2").replace(/\bPM25\b/g, "PM2.5");
+}
+
+function syncColumnChartCards() {
+  state.columnCharts = {};
+  query("[data-column-toggles]").querySelectorAll("input:checked").forEach((input) => {
+    const column = state.schema.columns[Number(input.value)];
+    const key = `column-${input.value}`;
+    state.columnCharts[key] = {
+      ...makePodChart(`column:${column.name}`, formatFieldLabel(column.name), column.unit),
+      canvas: `chart-${key}`,
+      stats: key,
+    };
+  });
+
+  app.querySelectorAll("[data-dynamic-chart-card]").forEach((card) => {
+    if (!state.columnCharts[card.dataset.chartCard]) {
+      card.remove();
+    }
+  });
+  Object.entries(state.columnCharts).forEach(([key, chart]) => {
+    if (query(`[data-chart-card="${key}"]`)) {
+      return;
+    }
+    const card = document.createElement("article");
+    const heading = document.createElement("div");
+    const title = document.createElement("h2");
+    const stats = document.createElement("span");
+    const legend = document.createElement("div");
+    const canvas = document.createElement("canvas");
+    card.className = "chart-card";
+    card.dataset.chartCard = key;
+    card.dataset.dynamicChartCard = "";
+    heading.className = "chart-heading";
+    title.textContent = chart.title;
+    stats.dataset.chartStats = key;
+    stats.textContent = "--";
+    legend.className = "chart-legend";
+    legend.dataset.chartLegend = key;
+    canvas.id = chart.canvas;
+    canvas.dataset.chart = key;
+    canvas.setAttribute("role", "img");
+    canvas.setAttribute("aria-label", t("dataPlotter.interactiveColumnChart", { title: chart.title }));
+    heading.append(title, stats);
+    card.append(heading, legend, canvas);
+    query(".chart-grid").append(card);
+  });
+  updateChartHeadings();
+}
+
+function getAllCharts() {
+  return { ...CHARTS, ...state.columnCharts };
 }
 
 // ---------------------------------------------------------------------------
@@ -426,18 +530,11 @@ function mapFileValues(values, resolutionCache = null) {
     return null;
   }
 
-  const cacheKey = getRowSchemaCacheKey(values);
-  const cachedSchema = resolutionCache?.get(cacheKey);
-  const cachedValues = cachedSchema ? normalizeValuesForColumns(values, cachedSchema.columns) : null;
-  const resolved = cachedValues
-    ? { schema: cachedSchema, values: cachedValues }
-    : resolveYpodSchemaForValues(state.yamlResource, state.schema, values);
+  const resolved = resolveFileValues(values, resolutionCache);
 
   if (!resolved || !hasRequiredChartFields(resolved.schema)) {
     return null;
   }
-
-  resolutionCache?.set(cacheKey, resolved.schema);
 
   const { schema, values: normalizedValues } = resolved;
 
@@ -463,9 +560,27 @@ function mapFileValues(values, resolutionCache = null) {
   return {
     timestamp,
     values: Object.fromEntries(
-      getConfiguredFieldKeys().map((key) => [key, numberField(fields, FIELD_ALIASES[key] || [])]),
+      [
+        ...getConfiguredFieldKeys().map((key) => [key, numberField(fields, FIELD_ALIASES[key] || [])]),
+        ...schema.columns.map((column) => [
+          `column:${column.name}`, numberField(fields, [column.name]),
+        ]),
+      ],
     ),
   };
+}
+
+function resolveFileValues(values, resolutionCache = null) {
+  const cacheKey = getRowSchemaCacheKey(values);
+  const cachedSchema = resolutionCache?.get(cacheKey);
+  const cachedValues = cachedSchema ? normalizeValuesForColumns(values, cachedSchema.columns) : null;
+  const resolved = cachedValues
+    ? { schema: cachedSchema, values: cachedValues }
+    : resolveYpodSchemaForValues(state.yamlResource, state.schema, values);
+  if (resolved) {
+    resolutionCache?.set(cacheKey, resolved.schema);
+  }
+  return resolved;
 }
 
 function getRowSchemaCacheKey(values) {
@@ -537,6 +652,9 @@ function parseRecordTimestamp(fields) {
 }
 
 function resolveColumnForField(fieldKey, columns = state.schema?.columns || []) {
+  if (fieldKey.startsWith("column:")) {
+    return columns.find((column) => column.name === fieldKey.slice(7)) || null;
+  }
   const aliases = FIELD_ALIASES[fieldKey] || [];
   const normalizedAliases = aliases.map(normalizeFieldName);
 
@@ -645,6 +763,62 @@ function updateFileReadout(podKey) {
   query(`[data-first-line="${podKey}"]`).textContent = pod.firstDataLine || "--";
   query(`[data-time-span="${podKey}"]`).textContent =
     first && last ? formatTimeSpan(first.timestamp, last.timestamp) : "--";
+  query(`[data-download-csv="${podKey}"]`).disabled = !pod.records.length;
+}
+
+function buildCsvWithHeaders(rawText) {
+  const headers = new Set();
+  const rows = [];
+  const resolutionCache = new Map();
+  const linePattern = /[^\r\n]+/g;
+  let match;
+
+  while ((match = linePattern.exec(rawText)) !== null) {
+    const values = parseCsvLine(match[0]);
+    if (isHeaderRow(values) || !isCsvLikeLine(match[0], values)) {
+      continue;
+    }
+    const resolved = resolveFileValues(values, resolutionCache);
+    if (!resolved) {
+      continue;
+    }
+    const row = new Map();
+    resolved.schema.columns.forEach((column, index) => {
+      headers.add(column.name);
+      row.set(column.name, resolved.values[index] ?? "");
+    });
+    rows.push(row);
+  }
+
+  if (!rows.length) {
+    return "";
+  }
+  // A file may contain multiple firmware layouts; align every row by name.
+  const names = [...headers];
+  const lines = [names.map(csvCell).join(",")];
+  rows.forEach((row) => lines.push(names.map((name) => csvCell(row.get(name) ?? "")).join(",")));
+  return `${lines.join("\r\n")}\r\n`;
+}
+
+function csvCell(value) {
+  const text = String(value);
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function downloadCsv(podKey) {
+  const pod = state.pods[podKey];
+  const csv = buildCsvWithHeaders(pod.rawText);
+  if (!csv) {
+    return;
+  }
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${pod.fileName.replace(/\.[^.]+$/, "")}-with-headers.csv`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function handleWindowChange(event) {
@@ -722,7 +896,7 @@ function handleChartPointerMove(event) {
   }
 
   const card = canvas.closest("[data-chart-card]");
-  const chart = CHARTS[card?.dataset.chartCard];
+  const chart = getAllCharts()[card?.dataset.chartCard];
 
   if (!card || !chart) {
     clearChartHover();
@@ -904,7 +1078,7 @@ function renderAll() {
   query(".chart-grid")
     .querySelectorAll(".chart-card")
     .forEach((card) => {
-      const chart = CHARTS[card.dataset.chartCard];
+      const chart = getAllCharts()[card.dataset.chartCard];
 
       if (!chart) {
         return;
@@ -1343,7 +1517,7 @@ function updateChartStats(chart, recordsByPod = visibleRecordsByPod()) {
 }
 
 function updateMetrics(recordsByPod = visibleRecordsByPod()) {
-  Object.values(CHARTS).forEach((chart) => {
+  Object.values(getAllCharts()).forEach((chart) => {
     POD_KEYS.forEach((podKey) => {
       const series = chart.series.find((item) => item.podKey === podKey);
 
@@ -1373,7 +1547,7 @@ function setMetric(name, value, unit) {
 }
 
 function updateChartHeadings() {
-  Object.entries(CHARTS).forEach(([chartKey, chart]) => {
+  Object.entries(getAllCharts()).forEach(([chartKey, chart]) => {
     const title = query(`[data-chart-card="${chartKey}"] h2`);
 
     if (!title) {
@@ -1392,7 +1566,7 @@ function updateChartHeadings() {
 }
 
 function getChartUnit(chart) {
-  return getFieldUnit(chart.stats, chart.unit || "");
+  return getFieldUnit(chart.series[0]?.key || chart.stats, chart.unit || "");
 }
 
 function getFieldUnit(fieldKey, fallback = "") {
@@ -1400,7 +1574,7 @@ function getFieldUnit(fieldKey, fallback = "") {
 }
 
 function updateLegends() {
-  Object.values(CHARTS).forEach((chart) => {
+  Object.values(getAllCharts()).forEach((chart) => {
     const legend = query(`[data-chart-legend="${chart.stats}"]`);
 
     if (!legend) {
@@ -1525,7 +1699,7 @@ function drawExportCard(context, card, gridRect, padding, headerHeight) {
   const width = rect.width;
   const height = rect.height;
   const canvas = card.querySelector("canvas");
-  const chart = CHARTS[card.dataset.chartCard];
+  const chart = getAllCharts()[card.dataset.chartCard];
   const title = card.querySelector("h2")?.textContent?.trim() || "";
   const stats = card.querySelector("[data-chart-stats]")?.textContent?.trim() || "";
   const legendItems = [...card.querySelectorAll(".chart-legend span")].map((item) => ({

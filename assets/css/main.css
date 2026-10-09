@@ -780,7 +780,8 @@ input {
 }
 
 .data-file-control-card {
-  grid-template-columns: minmax(8rem, 0.9fr) auto minmax(10rem, 1fr);
+  flex-basis: 40rem;
+  grid-template-columns: minmax(8rem, 0.9fr) auto auto minmax(10rem, 1fr);
 }
 
 .pod-label-input {

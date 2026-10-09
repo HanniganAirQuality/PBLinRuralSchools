@@ -28,6 +28,7 @@
       <article class="pod-control-card data-file-control-card">
         <input class="pod-label-input" type="text" placeholder="SPOD label" aria-label="SPOD label" data-pod-id="pod1">
         <button type="button" class="primary-action" data-load-pod="pod1">Load CSV</button>
+        <button type="button" data-download-csv="pod1" data-i18n="dataPlotter.downloadCsvWithHeaders" disabled></button>
         <input type="file" accept=".csv,.txt,text/csv" data-csv-input="pod1" hidden>
         <div class="connection-status" data-pod-status="pod1" aria-live="polite">No file loaded</div>
       </article>
@@ -58,6 +59,10 @@
       </div>
 
       <div class="plot-settings advanced-time-settings">
+        <fieldset class="plot-toggles column-toggles">
+          <legend class="setting-legend" data-i18n="liveViewer.columns"></legend>
+          <div data-column-toggles></div>
+        </fieldset>
         <div class="plot-view-controls">
           <label class="control-group" for="time-mode">
             <span class="setting-label">Time alignment <span class="setting-help" tabindex="0" aria-label="Time alignment help" data-help="Elapsed time starts the recording at 00:00:00. Recorded date and time preserves the timestamps stored in the file.">?</span></span>
