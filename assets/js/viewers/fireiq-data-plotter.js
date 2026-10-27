@@ -62,11 +62,11 @@ const SQIQ_FIELD_ALIASES = {
   date: ["Date"],
   temperature1: ["Temperature1"],
   temperature2: ["Temperature2"],
-  co2: ["CO2", "CO2_raw"],
-  soil: ["SoilMoisture", "SoilMoisture_Raw", "Soil"],
+  co2: ["CO2"],
+  soil: ["SoilMoisture"],
   visible: ["Visible"],
   infrared: ["Infrared"],
-  uv: ["UV", "UV_Index"],
+  uv: ["UV"],
 };
 
 const FIELD_ALIASES = PLOTTER_CONFIG.fieldAliases || (
