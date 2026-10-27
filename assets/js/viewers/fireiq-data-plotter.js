@@ -62,11 +62,11 @@ const SQIQ_FIELD_ALIASES = {
   date: ["Date"],
   temperature1: ["Temperature1"],
   temperature2: ["Temperature2"],
-  co2: ["Calibrated_CO2", "CO2"],
-  soil: ["Calibrated_Soil", "Soil"],
+  co2: ["CO2", "CO2_raw"],
+  soil: ["SoilMoisture", "SoilMoisture_Raw", "Soil"],
   visible: ["Visible"],
   infrared: ["Infrared"],
-  uv: ["UV_Index"],
+  uv: ["UV", "UV_Index"],
 };
 
 const FIELD_ALIASES = PLOTTER_CONFIG.fieldAliases || (
@@ -110,7 +110,7 @@ const SQIQ_CHARTS = {
     ],
   },
   co2: makePodChart("co2", "Carbon Dioxide", "ppm", true),
-  soil: makePodChart("soil", "Soil", "ADU", true),
+  soil: makePodChart("soil", "Soil Moisture", "%", true),
   light: {
     stats: "light",
     title: "Visible and Infrared Light",
@@ -121,7 +121,7 @@ const SQIQ_CHARTS = {
       { podKey: "pod1", key: "infrared", label: "Infrared", color: "#7c3aed" },
     ],
   },
-  uv: makePodChart("uv", "UV Index", "UV index", true),
+  uv: makePodChart("uv", "UV", "UV index", true),
 };
 
 const CHARTS = PLOTTER_CONFIG.charts || (
