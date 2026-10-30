@@ -81,9 +81,9 @@ function mountHeaderControls() {
 }
 
 function mountPlotControls() {
-  const plotSelections = document.querySelector(".basic-plot-settings");
+  const plotSelections = document.querySelector(".basic-plot-settings, .co2-battle-page .battle-toolbar");
 
-  if (!plotSelections || !document.querySelector(".chart-grid")) {
+  if (!plotSelections || !document.querySelector(".chart-grid, .co2-battle-page .battle-grid, [data-pollutant-plots]")) {
     return;
   }
 
@@ -104,7 +104,7 @@ function makeHeaderButton(label, controlName, onClick) {
 }
 
 function scrollToGraphs() {
-  document.querySelector(".chart-grid")?.scrollIntoView({
+  document.querySelector(".pollutant-round, .chart-grid, .co2-battle-page .battle-grid")?.scrollIntoView({
     behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ? "auto" : "smooth",
     block: "start",
   });

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="pollutantBattle.page.browserTitle"></title>
+  <link rel="icon" href="../../../favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="../../../assets/css/main.css">
+  <link rel="stylesheet" href="../../../assets/css/pollutant-battle.css">
+</head>
+<body class="tool-page live-viewer-page pollutant-battle-page theme-aqiq">
+  <header class="site-header">
+    <a class="brand" href="../../../" data-i18n="common.brand"></a>
+    <nav class="site-nav" aria-labelledby="battle-navigation-label">
+      <span class="battle-sr-only" id="battle-navigation-label" data-i18n="common.navigation.tools"></span>
+      <a href="../../" data-i18n="common.navigation.aqiqHub"></a>
+      <a href="../co2-battle/" data-i18n="pollutantBattle.navigation.co2Battle"></a>
+      <a href="../live-viewer/" data-i18n="common.liveViewer"></a>
+    </nav>
+  </header>
+
+  <main class="live-shell" data-pollutant-battle>
+    <section class="live-header" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow" data-i18n="pollutantBattle.page.eyebrow"></p>
+        <h1 id="page-title" data-i18n="pollutantBattle.page.title"></h1>
+      </div>
+      <p class="battle-intro" data-i18n="pollutantBattle.intro"></p>
+    </section>
+
+    <section class="battle-directions" aria-labelledby="directions-title">
+      <h2 id="directions-title" data-i18n="co2Battle.startARound"></h2>
+      <ol>
+        <li data-i18n="pollutantBattle.directions.connect"></li>
+        <li data-i18n="pollutantBattle.directions.choose"></li>
+        <li data-i18n="pollutantBattle.directions.compare"></li>
+      </ol>
+    </section>
+
+    <label class="control-group pollutant-pod-count" for="battle-pod-count">
+      <span class="setting-label" data-i18n="pollutantBattle.podCount.label"></span>
+      <select id="battle-pod-count" data-pod-count>
+        <option value="1" data-i18n="pollutantBattle.podCount.one"></option>
+        <option value="2" data-i18n="pollutantBattle.podCount.two" selected></option>
+        <option value="3" data-i18n="pollutantBattle.podCount.three"></option>
+        <option value="4" data-i18n="pollutantBattle.podCount.four"></option>
+      </select>
+    </label>
+
+    <section class="live-controls battle-pod-controls" aria-labelledby="connections-label">
+      <h2 class="battle-sr-only" id="connections-label" data-i18n="co2Battle.connections.ariaLabel"></h2>
+      <article class="pod-control-card" data-pod-controls="1">
+        <label class="control-group" for="pod-1-name">
+          <span class="setting-label" data-pod-name-label="1"></span>
+          <input class="pod-label-input" id="pod-1-name" type="text" maxlength="32" data-pod-name="1">
+        </label>
+        <button class="primary-action" type="button" data-connect-pod="1" data-i18n="common.actions.connect" disabled></button>
+        <button type="button" data-disconnect-pod="1" data-i18n="common.actions.disconnect" disabled></button>
+        <div class="connection-status" data-pod-status="1" role="status"></div>
+      </article>
+      <article class="pod-control-card" data-pod-controls="2">
+        <label class="control-group" for="pod-2-name">
+          <span class="setting-label" data-pod-name-label="2"></span>
+          <input class="pod-label-input" id="pod-2-name" type="text" maxlength="32" data-pod-name="2">
+        </label>
+        <button class="primary-action" type="button" data-connect-pod="2" data-i18n="common.actions.connect" disabled></button>
+        <button type="button" data-disconnect-pod="2" data-i18n="common.actions.disconnect" disabled></button>
+        <div class="connection-status" data-pod-status="2" role="status"></div>
+      </article>
+      <article class="pod-control-card" data-pod-controls="3" hidden>
+        <label class="control-group" for="pod-3-name">
+          <span class="setting-label" data-pod-name-label="3"></span>
+          <input class="pod-label-input" id="pod-3-name" type="text" maxlength="32" data-pod-name="3">
+        </label>
+        <button class="primary-action" type="button" data-connect-pod="3" data-i18n="common.actions.connect" disabled></button>
+        <button type="button" data-disconnect-pod="3" data-i18n="common.actions.disconnect" disabled></button>
+        <div class="connection-status" data-pod-status="3" role="status"></div>
+      </article>
+      <article class="pod-control-card" data-pod-controls="4" hidden>
+        <label class="control-group" for="pod-4-name">
+          <span class="setting-label" data-pod-name-label="4"></span>
+          <input class="pod-label-input" id="pod-4-name" type="text" maxlength="32" data-pod-name="4">
+        </label>
+        <button class="primary-action" type="button" data-connect-pod="4" data-i18n="common.actions.connect" disabled></button>
+        <button type="button" data-disconnect-pod="4" data-i18n="common.actions.disconnect" disabled></button>
+        <div class="connection-status" data-pod-status="4" role="status"></div>
+      </article>
+    </section>
+
+    <details class="advanced-settings">
+      <summary data-i18n="common.settings.advanced"></summary>
+      <div class="advanced-grid">
+        <label class="control-group" for="battle-yaml-version">
+          <span class="setting-label" data-i18n="common.schema.version"></span>
+          <select id="battle-yaml-version" data-yaml-version></select>
+        </label>
+        <label class="control-group" for="battle-yaml-section">
+          <span class="setting-label" data-i18n="common.schema.type"></span>
+          <select id="battle-yaml-section" data-yaml-section></select>
+        </label>
+        <label class="control-group" for="pod-1-color" data-pod-color-control="1">
+          <span class="setting-label" data-pod-color-label="1"></span>
+          <input id="pod-1-color" type="color" value="#2479d8" data-pod-color="1">
+        </label>
+        <label class="control-group" for="pod-2-color" data-pod-color-control="2">
+          <span class="setting-label" data-pod-color-label="2"></span>
+          <input id="pod-2-color" type="color" value="#eb6b25" data-pod-color="2">
+        </label>
+        <label class="control-group" for="pod-3-color" data-pod-color-control="3" hidden>
+          <span class="setting-label" data-pod-color-label="3"></span>
+          <input id="pod-3-color" type="color" value="#16833e" data-pod-color="3">
+        </label>
+        <label class="control-group" for="pod-4-color" data-pod-color-control="4" hidden>
+          <span class="setting-label" data-pod-color-label="4"></span>
+          <input id="pod-4-color" type="color" value="#9553c8" data-pod-color="4">
+        </label>
+        <div class="schema-card advanced-schema-card" aria-live="polite">
+          <span class="schema-label" data-i18n="common.schema.source"></span>
+          <a data-schema-link href="https://github.com/HanniganAirQuality/All-POD-YAMLs/blob/main/YPOD_HeaderLog.yaml" data-i18n="common.ypodHeaderlogYaml"></a>
+          <span data-schema-status data-i18n="common.loadingYpodSchema"></span>
+        </div>
+      </div>
+    </details>
+
+    <section class="plot-settings basic-plot-settings" aria-labelledby="pollutant-selection-label">
+      <h2 id="pollutant-selection-label" data-i18n="pollutantBattle.selection.title"></h2>
+      <p class="pollutant-selection-help" data-i18n="pollutantBattle.selection.help"></p>
+      <div class="pollutant-toggles" data-pollutant-toggles></div>
+      <button type="button" data-reset-round data-i18n="co2Battle.resetRound"></button>
+    </section>
+
+    <div class="pollutant-battles" data-pollutant-plots></div>
+    <p class="battle-empty" data-empty-selection role="status" data-i18n="pollutantBattle.selection.empty" hidden></p>
+  </main>
+
+  <footer class="site-footer">
+    <span data-i18n="common.footer"></span>
+    <span data-current-year></span>
+  </footer>
+
+  <script type="module" src="../../../assets/js/core/site.js"></script>
+  <script type="module" src="../../../assets/js/viewers/aqiq-pollutant-battle.js"></script>
+</body>
+</html>

@@ -1,0 +1,149 @@
+.battle-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.pollutant-battle-page .pod-control-card {
+  min-width: min(100%, 27rem);
+  flex-basis: 27rem;
+}
+
+.pollutant-battle-page .primary-action {
+  color: #17202a;
+}
+
+.pollutant-pod-count {
+  width: min(100%, 16rem);
+}
+
+.pollutant-battle-page input[type="color"] {
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.2rem;
+  cursor: pointer;
+}
+
+.pollutant-battle-page .basic-plot-settings h2 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.pollutant-selection-help {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.pollutant-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+}
+
+.pollutant-toggles label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.pollutant-toggles label:has(:disabled) {
+  color: var(--muted);
+}
+
+.pollutant-battles {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.pollutant-round {
+  height: calc(100dvh - 1rem);
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.5rem;
+}
+
+.pollutant-round-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+}
+
+.pollutant-round-heading h2 {
+  font-size: 1.15rem;
+  margin: 0;
+}
+
+.pollutant-round-heading .battle-leader {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pollutant-round .battle-grid {
+  height: auto;
+  grid-template-columns: repeat(var(--pod-count, 2), minmax(0, 1fr));
+}
+
+.pollutant-round .battle-card {
+  border-top-color: var(--pod-color);
+}
+
+.pollutant-round .battle-card h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  overflow-wrap: anywhere;
+}
+
+.pollutant-round .battle-meter-fill {
+  background: var(--pod-color);
+}
+
+.pollutant-round .battle-reading {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.3em;
+}
+
+.pollutant-round .battle-peak-marker {
+  border-top-color: var(--ink);
+}
+
+.battle-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+@media (min-width: 761px) and (max-width: 1100px) {
+  .pollutant-battles[data-pod-count="3"] .pollutant-round,
+  .pollutant-battles[data-pod-count="4"] .pollutant-round {
+    height: auto;
+    grid-template-rows: auto auto;
+  }
+
+  .pollutant-battles[data-pod-count="3"] .battle-grid,
+  .pollutant-battles[data-pod-count="4"] .battle-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: none;
+    grid-auto-rows: calc(100dvh - 5rem);
+  }
+}
+
+@media (max-width: 760px) {
+  .pollutant-round {
+    height: auto;
+    grid-template-rows: auto auto;
+  }
+
+  .pollutant-round .battle-grid {
+    grid-template-columns: 1fr;
+  }
+}

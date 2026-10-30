@@ -136,6 +136,7 @@ const app = document.querySelector(
 const state = {
   yamlResource: null,
   schema: null,
+  schemaManuallySelected: false,
   columnCharts: {},
   displayWindowMs: DEFAULT_WINDOW_MINUTES * 60 * 1000,
   timeMode: "elapsed",
@@ -229,7 +230,7 @@ function bindControls() {
   query("[data-reset]").addEventListener("click", resetData);
   query("[data-export-png]").addEventListener("click", exportGraphPng);
   query("[data-yaml-version]").addEventListener("change", handleVersionChange);
-  query("[data-yaml-section]").addEventListener("change", applySelectedSchema);
+  query("[data-yaml-section]").addEventListener("change", () => applySelectedSchema({ manual: true }));
   query("[data-window-minutes]").addEventListener("input", handleWindowChange);
   query("[data-time-mode]").addEventListener("change", handleTimeModeChange);
   query("[data-chart-zoom]").addEventListener("input", handleZoomChange);
@@ -312,15 +313,16 @@ function populateSectionSelect() {
 
 function handleVersionChange() {
   populateSectionSelect();
-  applySelectedSchema();
+  applySelectedSchema({ manual: true });
 }
 
-function applySelectedSchema() {
+function applySelectedSchema({ manual = false } = {}) {
   const version = query("[data-yaml-version]").value;
   const section = query("[data-yaml-section]").value;
 
   try {
     const schema = getYpodSectionSchema(state.yamlResource, version, section);
+    state.schemaManuallySelected = manual;
     setActiveSchema(schema, { reparse: true });
   } catch (error) {
     query("[data-schema-status]").textContent = error.message || "Unable to load schema";
@@ -470,6 +472,7 @@ async function loadFile(podKey, file) {
   }
 
   pod.fileName = file.name;
+  state.schemaManuallySelected = false;
   parsePodData(podKey);
 
   if (pod.records.length === 0) {
@@ -571,6 +574,11 @@ function mapFileValues(values, resolutionCache = null) {
 }
 
 function resolveFileValues(values, resolutionCache = null) {
+  if (state.schemaManuallySelected) {
+    const normalizedValues = normalizeValuesForColumns(values, state.schema.columns);
+    return normalizedValues ? { schema: state.schema, values: normalizedValues } : null;
+  }
+
   const cacheKey = getRowSchemaCacheKey(values);
   const cachedSchema = resolutionCache?.get(cacheKey);
   const cachedValues = cachedSchema ? normalizeValuesForColumns(values, cachedSchema.columns) : null;

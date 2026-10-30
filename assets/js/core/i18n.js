@@ -140,7 +140,7 @@ function readStoredLanguage() {
 
 function getCatalogContext() {
   const path = decodeURIComponent(window.location.pathname).replace(/\\/g, "/");
-  const toolMatch = path.match(/\/(?:aqiq|fire-iq|sqiq)\/tools\/(live-viewer|data-plotter|co2-battle|soil-respiration)(?:\/|\/index\.html)?$/i);
+  const toolMatch = path.match(/\/(?:aqiq|fire-iq|sqiq)\/tools\/(live-viewer|data-plotter|co2-battle|pollutant-battle|soil-respiration)(?:\/|\/index\.html)?$/i);
   const programMatch = path.match(/\/(aqiq|fire-iq|sqiq|water-iq)\/(?:index\.html)?$/i);
 
   if (document.body?.classList.contains("landing")) {
@@ -153,6 +153,7 @@ function getCatalogContext() {
   if (toolMatch) {
     const toolNamespaces = {
       "co2-battle": "co2Battle.",
+      "pollutant-battle": "pollutantBattle.",
       "data-plotter": "dataPlotter.",
       "live-viewer": "liveViewer.",
       "soil-respiration": "soilRespiration.",
