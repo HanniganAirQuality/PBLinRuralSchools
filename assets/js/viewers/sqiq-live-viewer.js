@@ -2,14 +2,15 @@ window.HAQ_LIVE_VIEWER_CONFIG = {
   podType: "SPOD",
   exportTitle: "SQIQ SPOD Live Visualization",
   fieldAliases: {
-    timestamp: ["DateTime", "Timestamp"],
+    timestamp: ["DateTime", "Timestamp", "Time"],
+    date: ["Date"],
     temperature1: ["Temperature1"],
     temperature2: ["Temperature2"],
-    co2: ["Calibrated_CO2", "CO2"],
-    soil: ["Calibrated_Soil", "Soil"],
+    co2: ["CO2"],
+    soil: ["SoilMoisture"],
     visible: ["Visible"],
     infrared: ["Infrared"],
-    uv: ["UV_Index"],
+    uv: ["UV"],
   },
   charts: {
     temperature: {
